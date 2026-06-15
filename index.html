@@ -175,6 +175,7 @@ input,textarea{font-family:inherit;}
 .color-swatch{width:32px;height:32px;border-radius:8px;cursor:pointer;border:2px solid transparent;}
 .color-swatch:hover{transform:scale(1.1);}
 .color-swatch.selected{border-color:var(--text1);}
+
 /* ===== CALL UI ===== */
 .call-ui{position:fixed;inset:0;background:#0a0a0f;z-index:200;display:flex;flex-direction:column;}
 .call-videos{flex:1;display:grid;place-items:center;gap:12px;padding:16px;background:#000;position:relative;}
@@ -282,11 +283,12 @@ input,textarea{font-family:inherit;}
 .theme-orange{--accent1:#f97316;--accent2:#eab308;--grad:linear-gradient(135deg,#f97316,#eab308);}
 .theme-pink{--accent1:#ec4899;--accent2:#f97316;--grad:linear-gradient(135deg,#ec4899,#f97316);}
 .theme-cyan{--accent1:#06b6d4;--accent2:#7c5cfc;--grad:linear-gradient(135deg,#06b6d4,#7c5cfc);}
-/* Permission banner */
 .perm-banner{background:rgba(124,92,252,.15);border:1px solid var(--accent1);border-radius:10px;padding:12px 16px;margin:12px 16px;font-size:13px;display:flex;align-items:center;gap:10px;}
 .perm-banner button{background:var(--grad);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;}
-/* DM unread badge */
 .dm-unread{background:var(--red);color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:2px 5px;min-width:16px;text-align:center;margin-left:auto;}
+
+/* Indicateur mute visible sur la tuile */
+.mute-badge{position:absolute;top:8px;right:8px;background:rgba(239,68,68,.9);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;color:#fff;}
 </style>
 </head>
 <body>
@@ -408,17 +410,31 @@ let S = {
   theme: 'theme-purple', micOn: true, deafOn: false,
   inCall: false, callTimer: null, callSec: 0,
   _listeners: [], _seenMsgToast: {}, _seenFriendToast: {},
-  // DM unread tracking
   dmUnread: {},
 };
 
-// ==================== WebRTC ====================
+// ==================== WebRTC STATE ====================
+// On sépare proprement l'état WebRTC pour éviter les conflits
 let WR = {
-  pc: null, localStream: null, screenStream: null,
-  callId: null, callType: 'voice', isCaller: false, remoteUserId: null,
-  micMuted: false, camOff: true, screenSharing: false,
-  signalingUnsub: null, iceUnsub: null,
+  pc: null,
+  localStream: null,       // stream micro+caméra
+  screenStream: null,      // stream partage écran
+  callId: null,
+  callType: 'voice',       // 'voice' | 'video'
+  isCaller: false,
+  remoteUserId: null,
+  // États mute/caméra (source de vérité unique)
+  micMuted: false,
+  camOff: true,
+  screenSharing: false,
+  // Signaling cleanup
+  signalingUnsub: null,
+  iceUnsub: null,
   iceCandidatesReceived: new Set(),
+  // Silence track pour remplacer audio quand muté
+  silenceTrack: null,
+  // Black track pour remplacer vidéo quand caméra off
+  blackTrack: null,
 };
 
 const ICE_SERVERS = {
@@ -582,11 +598,9 @@ function setupListeners(){
   });
   dbListen('pendingOut/'+S.me, val=>{ S.pendingOut[S.me]=val||{}; if(S.view==='friends')renderFriendsView(); });
 
-  // ===== FIX: DM listener avec notifications =====
   dbListen('dms', val=>{
     const prevDms = S.dms;
     S.dms=val||{};
-    // Notify about new DM messages
     const myFriends = Object.keys(S.friends[S.me]||{});
     myFriends.forEach(fid=>{
       const dmKey=getDmKey(S.me,fid);
@@ -596,7 +610,6 @@ function setupListeners(){
         const latest = newMsgs.sort((a,b)=>b.ts-a.ts)[0];
         if(latest && latest.authorId !== S.me && !S._seenMsgToast[latest.id]){
           S._seenMsgToast[latest.id]=1;
-          // Track unread if not currently viewing this DM
           if(S.activeDm !== fid){
             S.dmUnread[fid] = (S.dmUnread[fid]||0)+1;
           }
@@ -605,7 +618,6 @@ function setupListeners(){
         }
       }
     });
-    // Re-render DM view if active
     if(S.activeDm){ renderDm(S.activeDm); }
     renderLeftPanel('dm');
   });
@@ -629,8 +641,6 @@ function showIncomingCall(data){
   if(!fu) return;
   const typeLabel = data.type === 'video' ? 'vidéo' : 'vocal';
   const container = document.getElementById('incoming-call-ui');
-  // Store data safely
-  const safeData = JSON.stringify(data);
   container.innerHTML = `
     <div class="incoming-call">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
@@ -667,13 +677,74 @@ async function acceptCall(data){
   await initWebRTCCall(false, data.offer);
 }
 
+// ==================== WEBRTC HELPERS ====================
+
+/**
+ * Crée un track audio silencieux via AudioContext.
+ * Utilisé pour remplacer le micro quand on se mute,
+ * sans couper le sender — ça garantit que l'autre entend le silence
+ * plutôt qu'une erreur de track null.
+ */
+function createSilenceTrack(){
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const dst = ctx.createMediaStreamDestination();
+  const osc = ctx.createOscillator();
+  // On ne connecte pas l'oscillateur : on obtient un silence pur
+  ctx.createGain().connect(dst);
+  return dst.stream.getAudioTracks()[0];
+}
+
+/**
+ * Crée un track vidéo noir (1x1 pixel, 1fps).
+ * Utilisé pour remplacer la caméra quand elle est désactivée
+ * sans supprimer le sender vidéo de la connexion.
+ */
+function createBlackTrack(){
+  const canvas = document.createElement('canvas');
+  canvas.width = 2; canvas.height = 2;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = 'black';
+  ctx.fillRect(0,0,2,2);
+  const stream = canvas.captureStream(1);
+  return stream.getVideoTracks()[0];
+}
+
+/**
+ * Remplace un track dans le RTCPeerConnection.
+ * On cherche le sender correspondant au kind (audio/video)
+ * et on remplace le track envoyé, sans renegocier.
+ */
+async function replaceTrackInPC(newTrack, kind){
+  if(!WR.pc) return;
+  const sender = WR.pc.getSenders().find(s => s.track && s.track.kind === kind);
+  if(sender){
+    try { await sender.replaceTrack(newTrack); }
+    catch(e){ console.warn('replaceTrack error:', e); }
+  }
+}
+
+/**
+ * Ajoute un track audio dans le PC même si aucun sender audio n'existe.
+ * Nécessaire si on démarre sans micro et qu'on l'active ensuite.
+ */
+async function addTrackToPC(track, stream){
+  if(!WR.pc) return;
+  WR.pc.addTrack(track, stream);
+}
+
 // ==================== WEBRTC CORE ====================
+
 async function initWebRTCCall(isCaller, remoteOffer){
   const callType = WR.callType;
   const remoteUserId = WR.remoteUserId;
   const fu = S.users[remoteUserId];
 
-  S.inCall = true; S.callSec = 0;
+  S.inCall = true;
+  S.callSec = 0;
+  WR.micMuted = false;
+  WR.camOff = true;
+  WR.screenSharing = false;
+
   const callUi = document.getElementById('call-ui');
   callUi.classList.remove('hidden');
   setCallStatus('Initialisation...');
@@ -683,97 +754,153 @@ async function initWebRTCCall(isCaller, remoteOffer){
   if(callType === 'video') camBtn.classList.remove('hidden');
   else camBtn.classList.add('hidden');
 
+  // Reset boutons
+  const micBtn = document.getElementById('call-mic-btn');
+  if(micBtn){ micBtn.classList.remove('off'); micBtn.textContent='🎤'; }
+  const scrBtn = document.getElementById('call-screen-btn');
+  if(scrBtn){ scrBtn.classList.remove('off'); scrBtn.textContent='🖥️'; }
+
   buildCallTiles(fu, callType);
 
-  // ===== FIX: Demande permissions micro/caméra =====
+  // ---- Acquisition du stream local ----
   try {
     const constraints = {
-      audio: { echoCancellation:true, noiseSuppression:true, autoGainControl:true },
-      video: callType==='video' ? { width:{ideal:1280}, height:{ideal:720}, facingMode:'user' } : false
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      // On demande la vidéo uniquement pour les appels vidéo
+      video: callType === 'video'
+        ? { width:{ ideal:1280 }, height:{ ideal:720 }, facingMode:'user' }
+        : false
     };
     WR.localStream = await navigator.mediaDevices.getUserMedia(constraints);
-    WR.micMuted = false;
-    WR.camOff = (callType !== 'video');
-    setCallStatus('Micro actif...');
-    // Reset mic btn
-    const micBtn = document.getElementById('call-mic-btn');
-    if(micBtn){ micBtn.classList.remove('off'); micBtn.textContent='🎤'; }
-  } catch(e) {
-    console.error('Erreur media:', e);
-    if(e.name==='NotAllowedError'||e.name==='PermissionDeniedError'){
-      showToast('Permission refusée','Autorise le micro/caméra dans ton navigateur puis réessaie.','#ef4444','🎤');
-    } else if(e.name==='NotFoundError'){
-      showToast('Périphérique introuvable','Aucun micro/caméra détecté sur cet appareil.','#ef4444','!');
-    } else {
-      showToast('Erreur media','Impossible d\'accéder au micro/caméra.','#ef4444','!');
+    setCallStatus('Micro actif ✓');
+
+    if(callType === 'video'){
+      WR.camOff = false;
+      // Afficher la caméra locale
+      const lv = document.getElementById('local-video');
+      const la = document.getElementById('local-avatar');
+      if(lv){ lv.srcObject = WR.localStream; lv.style.display='block'; }
+      if(la) la.style.display='none';
+      if(camBtn){ camBtn.classList.remove('off'); camBtn.textContent='📷'; }
     }
-    // Fallback: audio only
+  } catch(e){
+    console.error('Erreur media:', e);
+    // Tente fallback audio only
     try {
-      WR.localStream = await navigator.mediaDevices.getUserMedia({ audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}, video:false });
+      WR.localStream = await navigator.mediaDevices.getUserMedia({
+        audio:{ echoCancellation:true, noiseSuppression:true, autoGainControl:true },
+        video: false
+      });
       WR.camOff = true;
-      setCallStatus('Micro actif (caméra indisponible)');
-    } catch(e2) {
+      setCallStatus('Audio only (caméra indisponible)');
+      if(callType==='video'){
+        showToast('Caméra indisponible','Appel en mode audio uniquement.','#f97316','⚠️');
+        if(camBtn) camBtn.classList.add('hidden');
+      }
+    } catch(e2){
       console.error('Erreur audio fallback:', e2);
-      showToast('Erreur','Impossible d\'accéder au micro. Vérifie les permissions.','#ef4444','!');
+      if(e.name==='NotAllowedError'||e2.name==='NotAllowedError'){
+        showToast('Permission refusée','Autorise le micro dans ton navigateur pour appeler.','#ef4444','🎤');
+      } else {
+        showToast('Erreur','Impossible d\'accéder au micro.','#ef4444','!');
+      }
       endCall(); return;
     }
   }
 
-  attachLocalStream(callType);
+  // Afficher le stream local audio (pas de vidéo si appel vocal)
+  if(callType !== 'video'){
+    const lv = document.getElementById('local-video');
+    if(lv) lv.style.display = 'none';
+  }
 
-  // Create peer connection
+  // ---- Création RTCPeerConnection ----
   WR.pc = new RTCPeerConnection(ICE_SERVERS);
+
+  // Ajouter tous les tracks locaux
   WR.localStream.getTracks().forEach(track => WR.pc.addTrack(track, WR.localStream));
 
+  // Pour appel vocal : on ajoute quand même un black track vidéo pour que le sender existe
+  // (nécessaire pour replaceTrack lors du partage d'écran)
+  if(callType === 'voice'){
+    WR.blackTrack = createBlackTrack();
+    // On n'ajoute pas le black track au PC pour un appel vocal pur
+    // (pas besoin de vidéo, on ajoutera lors du screen share)
+  }
+
+  // Pré-créer le silence track au cas où
+  try { WR.silenceTrack = createSilenceTrack(); } catch(e){ console.warn('AudioContext non dispo:', e); }
+
+  // ---- Handlers WebRTC ----
   WR.pc.ontrack = e => {
-    console.log('Track reçu:', e.track.kind);
+    console.log('🔊 Track reçu:', e.track.kind, e.streams[0]);
     setCallStatus('Connecté ✓');
-    attachRemoteStream(e.streams[0]);
+    attachRemoteStream(e.streams[0], e.track.kind);
     if(!S.callTimer){
-      S.callTimer = setInterval(()=>{ S.callSec++; document.getElementById('call-timer').textContent=formatTime(S.callSec); }, 1000);
+      S.callTimer = setInterval(()=>{
+        S.callSec++;
+        document.getElementById('call-timer').textContent = formatTime(S.callSec);
+      }, 1000);
     }
   };
 
   WR.pc.onicecandidate = e => {
-    if(e.candidate){
-      const cid = uid();
-      const path = isCaller
-        ? 'calls/'+remoteUserId+'/iceCaller/'+cid
-        : 'calls/'+WR.remoteUserId+'/iceCallee/'+cid;
-      dbSet(path, { candidate: JSON.stringify(e.candidate), id: cid, ts: Date.now() });
-    }
+    if(!e.candidate) return;
+    const cid = uid();
+    // CORRECTION : caller envoie ses candidats au callee et vice versa
+    const targetPath = isCaller
+      ? `calls/${remoteUserId}/iceCandidatesFromCaller/${cid}`
+      : `calls/${remoteUserId}/iceCandidatesFromCallee/${cid}`;
+    dbSet(targetPath, { candidate: JSON.stringify(e.candidate), id: cid, ts: Date.now() });
   };
 
   WR.pc.oniceconnectionstatechange = () => {
     const st = WR.pc ? WR.pc.iceConnectionState : '';
-    console.log('ICE:', st);
-    if(st==='connected'||st==='completed') setCallStatus('Connecté ✓');
-    else if(st==='checking') setCallStatus('Connexion en cours...');
-    else if(st==='failed'){ setCallStatus('Connexion échouée ✗'); showToast('Connexion échouée','Réessaie l\'appel.','#ef4444','!'); }
-    else if(st==='disconnected') setCallStatus('Déconnecté...');
+    console.log('ICE state:', st);
+    if(st === 'connected' || st === 'completed'){
+      setCallStatus('Connecté ✓');
+    } else if(st === 'checking'){
+      setCallStatus('Connexion en cours...');
+    } else if(st === 'failed'){
+      setCallStatus('Connexion échouée ✗');
+      showToast('Connexion échouée','Vérifie ta connexion et réessaie.','#ef4444','!');
+    } else if(st === 'disconnected'){
+      setCallStatus('Déconnecté...');
+    }
   };
 
   WR.pc.onconnectionstatechange = () => {
-    if(WR.pc && WR.pc.connectionState==='failed'){
+    if(WR.pc && WR.pc.connectionState === 'failed'){
       setCallStatus('Connexion échouée ✗');
     }
   };
 
+  // ---- Signaling ----
   if(isCaller){
     try {
-      const offer = await WR.pc.createOffer({ offerToReceiveAudio:true, offerToReceiveVideo:callType==='video' });
+      const offer = await WR.pc.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true  // toujours true pour permettre screen share
+      });
       await WR.pc.setLocalDescription(offer);
       setCallStatus('Sonnerie...');
 
       const callId = WR.callId || uid();
       WR.callId = callId;
-      await dbSet('calls/'+remoteUserId+'/incoming', { callId, from:S.me, type:callType, offer:JSON.stringify(offer) });
 
+      // Envoyer l'appel entrant à l'autre
+      await dbSet('calls/'+remoteUserId+'/incoming', {
+        callId, from: S.me, type: callType,
+        offer: JSON.stringify(offer)
+      });
+
+      // Écouter la réponse
       const answerRef = dbRef('calls/'+S.me+'/answer/'+callId);
       const unsubAnswer = onValue(answerRef, async snap => {
         if(!snap.exists()) return;
         const val = snap.val();
         off(answerRef, unsubAnswer);
+
         if(val.declined){
           showToast('Appel refusé', (fu?fu.username:'L\'autre')+' a refusé l\'appel.', '#ef4444', '✕');
           endCall(); return;
@@ -782,43 +909,70 @@ async function initWebRTCCall(isCaller, remoteOffer){
           try {
             const answer = JSON.parse(val.answer);
             await WR.pc.setRemoteDescription(new RTCSessionDescription(answer));
+            // Après setRemoteDescription, écouter les candidats du callee
             listenIceCandidates('callee');
           } catch(e){ console.error('setRemoteDescription error:', e); }
         }
       });
-      WR.signalingUnsub = ()=>{ off(answerRef, unsubAnswer); };
-    } catch(e){ console.error('createOffer error:', e); showToast('Erreur','Impossible de créer l\'appel.','#ef4444','!'); endCall(); }
+      WR.signalingUnsub = () => { off(answerRef, unsubAnswer); };
+
+    } catch(e){
+      console.error('createOffer error:', e);
+      showToast('Erreur','Impossible de créer l\'appel.','#ef4444','!');
+      endCall();
+    }
 
   } else {
+    // Callee : répondre
     try {
       const offer = JSON.parse(remoteOffer);
       await WR.pc.setRemoteDescription(new RTCSessionDescription(offer));
-      const answer = await WR.pc.createAnswer({ offerToReceiveAudio:true, offerToReceiveVideo:callType==='video' });
+      const answer = await WR.pc.createAnswer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true
+      });
       await WR.pc.setLocalDescription(answer);
-      await dbSet('calls/'+WR.remoteUserId+'/answer/'+WR.callId, { answer: JSON.stringify(answer) });
+      // Envoyer la réponse au caller
+      await dbSet('calls/'+WR.remoteUserId+'/answer/'+WR.callId, {
+        answer: JSON.stringify(answer)
+      });
+      // Écouter les candidats du caller
       listenIceCandidates('caller');
-    } catch(e){ console.error('createAnswer error:', e); showToast('Erreur','Impossible de répondre.','#ef4444','!'); endCall(); }
+    } catch(e){
+      console.error('createAnswer error:', e);
+      showToast('Erreur','Impossible de répondre à l\'appel.','#ef4444','!');
+      endCall();
+    }
   }
 }
 
+/**
+ * CORRECTION MAJEURE : les chemins ICE étaient inversés.
+ * - Le caller écoute iceCandidatesFromCallee
+ * - Le callee écoute iceCandidatesFromCaller
+ */
 function listenIceCandidates(role){
-  // role='caller' → we receive iceCaller; role='callee' → we receive iceCallee
-  const path = 'calls/'+S.me+'/'+(role==='caller'?'iceCaller':'iceCallee');
+  const path = role === 'caller'
+    ? `calls/${S.me}/iceCandidatesFromCaller`
+    : `calls/${S.me}/iceCandidatesFromCallee`;
+
   const r = dbRef(path);
   const listener = onValue(r, snap => {
-    if(!snap.exists()||!WR.pc) return;
+    if(!snap.exists() || !WR.pc) return;
     Object.values(snap.val()||{}).forEach(async data => {
       if(!data.candidate) return;
-      const cid = data.id||data.ts||JSON.stringify(data.candidate).slice(0,20);
+      const cid = data.id || String(data.ts);
       if(WR.iceCandidatesReceived.has(cid)) return;
       WR.iceCandidatesReceived.add(cid);
-      try { await WR.pc.addIceCandidate(new RTCIceCandidate(JSON.parse(data.candidate))); }
-      catch(e){ console.error('addIceCandidate:', e); }
+      try {
+        await WR.pc.addIceCandidate(new RTCIceCandidate(JSON.parse(data.candidate)));
+      } catch(e){ console.warn('addIceCandidate:', e); }
     });
   });
-  WR.iceUnsub = ()=>{ off(r, listener); };
+  WR.iceUnsub = () => { off(r, listener); };
 }
 
+// ---- UI Tiles ----
 function buildCallTiles(fu, callType){
   const vids = document.getElementById('call-videos');
   const me = S.users[S.me];
@@ -837,161 +991,369 @@ function buildCallTiles(fu, callType){
     </div>`;
 }
 
-function attachLocalStream(callType){
-  const lv = document.getElementById('local-video');
-  const la = document.getElementById('local-avatar');
-  if(!lv||!WR.localStream) return;
-  lv.srcObject = WR.localStream;
-  const hasVideo = WR.localStream.getVideoTracks().length>0 && callType==='video';
-  if(hasVideo){ lv.style.display='block'; if(la) la.style.display='none'; }
-}
-
-function attachRemoteStream(stream){
+function attachRemoteStream(stream, kind){
   const rv = document.getElementById('remote-video');
   const ra = document.getElementById('remote-avatar');
   const rs = document.getElementById('remote-status');
   if(!rv) return;
-  rv.srcObject = stream;
+
+  // Toujours assigner le stream complet
+  if(!rv.srcObject) rv.srcObject = stream;
+
   if(rs) rs.remove();
   const remoteTile = document.getElementById('remote-tile');
   if(remoteTile) remoteTile.classList.add('speaking');
-  const hasVideo = stream.getVideoTracks().length>0 && stream.getVideoTracks()[0].enabled;
-  if(hasVideo){ rv.style.display='block'; if(ra) ra.style.display='none'; }
+
+  // Afficher la vidéo si on reçoit du video
+  if(kind === 'video'){
+    rv.style.display = 'block';
+    if(ra) ra.style.display = 'none';
+  }
 }
 
-function setCallStatus(msg){ const el=document.getElementById('call-status-bar'); if(el) el.textContent=msg; }
+function setCallStatus(msg){
+  const el = document.getElementById('call-status-bar');
+  if(el) el.textContent = msg;
+}
 
+// ---- Lancer un appel ----
 async function startCall(userId, callType){
-  if(S.inCall){showToast('Déjà en appel','Termine l\'appel en cours avant d\'en commencer un nouveau.','#ef4444','!');return;}
+  if(S.inCall){
+    showToast('Déjà en appel','Termine l\'appel en cours avant d\'en commencer un nouveau.','#ef4444','!');
+    return;
+  }
   const fu = S.users[userId];
-  if(!fu){showToast('Erreur','Utilisateur introuvable.','#ef4444','!');return;}
-  // Check mic permission first
+  if(!fu){ showToast('Erreur','Utilisateur introuvable.','#ef4444','!'); return; }
+
+  // Vérifier permission micro avant de commencer
   try {
     const testStream = await navigator.mediaDevices.getUserMedia({ audio:true, video:false });
     testStream.getTracks().forEach(t=>t.stop());
-  } catch(e) {
+  } catch(e){
     showToast('Permission micro requise','Autorise le micro dans ton navigateur pour passer des appels.','#ef4444','🎤');
     return;
   }
-  WR.isCaller=true; WR.remoteUserId=userId; WR.callId=uid();
-  WR.callType=callType||'voice'; WR.iceCandidatesReceived.clear();
+
+  WR.isCaller = true;
+  WR.remoteUserId = userId;
+  WR.callId = uid();
+  WR.callType = callType || 'voice';
+  WR.iceCandidatesReceived.clear();
   await initWebRTCCall(true, null);
 }
 
-async function startVideoCall(userId){ await startCall(userId,'video'); }
+async function startVideoCall(userId){ await startCall(userId, 'video'); }
 
+// ---- Salon vocal (pas de peer-to-peer, juste micro local) ----
 function joinVoiceChannel(chId){
-  const ch=S.channels[chId]; if(!ch)return;
+  const ch = S.channels[chId]; if(!ch) return;
   if(S.inCall){ showToast('Déjà en appel','Quitte l\'appel en cours d\'abord.','#ef4444','!'); return; }
-  S.inCall=true; S.callSec=0;
-  const callUi=document.getElementById('call-ui');
+
+  S.inCall = true; S.callSec = 0;
+  WR.micMuted = false; WR.camOff = true; WR.screenSharing = false;
+
+  const callUi = document.getElementById('call-ui');
   callUi.classList.remove('hidden');
-  document.getElementById('call-label').textContent=`Vocal — #${ch.name}`;
+  document.getElementById('call-label').textContent = `Vocal — #${ch.name}`;
   document.getElementById('call-cam-btn').classList.add('hidden');
   setCallStatus('Salon vocal — En attente d\'autres membres');
-  const me=S.users[S.me];
-  const vids=document.getElementById('call-videos');
-  vids.className='call-videos grid-1';
-  vids.innerHTML=`<div class="call-video-tile speaking" id="local-tile">
-    <div class="tile-avatar" style="background:${me?me.color||avatarColor(me.username):'var(--grad)'}">${initials(me?me.username:'')}</div>
+
+  const micBtn = document.getElementById('call-mic-btn');
+  if(micBtn){ micBtn.classList.remove('off'); micBtn.textContent='🎤'; }
+  const scrBtn = document.getElementById('call-screen-btn');
+  if(scrBtn){ scrBtn.classList.remove('off'); scrBtn.textContent='🖥️'; }
+
+  const me = S.users[S.me];
+  const vids = document.getElementById('call-videos');
+  vids.className = 'call-videos grid-1';
+  vids.innerHTML = `<div class="call-video-tile speaking" id="local-tile">
+    <div class="tile-avatar" id="local-avatar" style="background:${me?me.color||avatarColor(me.username):'var(--grad)'}">${initials(me?me.username:'')}</div>
     <video id="local-video" autoplay muted playsinline style="display:none;"></video>
     <div class="tile-name">${me?me.username:'Moi'} (moi)</div>
   </div>`;
-  navigator.mediaDevices.getUserMedia({ audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}, video:false })
-    .then(stream=>{
-      WR.localStream=stream;
-      const lv=document.getElementById('local-video');
-      if(lv){lv.srcObject=stream;}
-      setCallStatus('Micro actif dans le salon');
-      const micBtn=document.getElementById('call-mic-btn');
-      if(micBtn){micBtn.classList.remove('off');micBtn.textContent='🎤';}
-    })
-    .catch(e=>{
-      console.error('Erreur micro:', e);
-      if(e.name==='NotAllowedError') showToast('Permission refusée','Autorise le micro dans ton navigateur.','#ef4444','🎤');
-      else showToast('Micro indisponible','Aucun micro détecté.','#ef4444','!');
-      setCallStatus('Micro indisponible');
-    });
-  S.callTimer=setInterval(()=>{S.callSec++;document.getElementById('call-timer').textContent=formatTime(S.callSec);},1000);
+
+  navigator.mediaDevices.getUserMedia({
+    audio: { echoCancellation:true, noiseSuppression:true, autoGainControl:true },
+    video: false
+  }).then(stream => {
+    WR.localStream = stream;
+    const lv = document.getElementById('local-video');
+    if(lv){ lv.srcObject = stream; }
+    try { WR.silenceTrack = createSilenceTrack(); } catch(e){}
+    setCallStatus('Micro actif dans le salon ✓');
+  }).catch(e => {
+    console.error('Erreur micro salon:', e);
+    if(e.name==='NotAllowedError') showToast('Permission refusée','Autorise le micro dans ton navigateur.','#ef4444','🎤');
+    else showToast('Micro indisponible','Aucun micro détecté.','#ef4444','!');
+    setCallStatus('Micro indisponible');
+  });
+
+  S.callTimer = setInterval(()=>{
+    S.callSec++;
+    document.getElementById('call-timer').textContent = formatTime(S.callSec);
+  }, 1000);
 }
 
+// ---- Fin d'appel ----
 function endCall(){
-  if(WR.localStream){ WR.localStream.getTracks().forEach(t=>t.stop()); WR.localStream=null; }
-  if(WR.screenStream){ WR.screenStream.getTracks().forEach(t=>t.stop()); WR.screenStream=null; }
-  if(WR.pc){ WR.pc.close(); WR.pc=null; }
-  if(WR.signalingUnsub){ WR.signalingUnsub(); WR.signalingUnsub=null; }
-  if(WR.iceUnsub){ WR.iceUnsub(); WR.iceUnsub=null; }
-  if(WR.callId && WR.remoteUserId){
-    dbRemove('calls/'+WR.remoteUserId+'/incoming').catch(()=>{});
-    dbRemove('calls/'+S.me+'/answer/'+WR.callId).catch(()=>{});
-    dbRemove('calls/'+S.me+'/iceCaller').catch(()=>{});
-    dbRemove('calls/'+S.me+'/iceCallee').catch(()=>{});
-    dbRemove('calls/'+WR.remoteUserId+'/iceCaller').catch(()=>{});
-    dbRemove('calls/'+WR.remoteUserId+'/iceCallee').catch(()=>{});
+  // Stopper tous les streams
+  if(WR.localStream){
+    WR.localStream.getTracks().forEach(t => t.stop());
+    WR.localStream = null;
   }
-  WR.callId=null; WR.remoteUserId=null; WR.isCaller=false;
-  WR.micMuted=false; WR.camOff=true; WR.screenSharing=false;
+  if(WR.screenStream){
+    WR.screenStream.getTracks().forEach(t => t.stop());
+    WR.screenStream = null;
+  }
+  // Stopper les tracks synthétiques
+  if(WR.silenceTrack){ WR.silenceTrack.stop(); WR.silenceTrack = null; }
+  if(WR.blackTrack){ WR.blackTrack.stop(); WR.blackTrack = null; }
+
+  // Fermer le peer connection
+  if(WR.pc){ WR.pc.close(); WR.pc = null; }
+
+  // Nettoyage signaling Firebase
+  if(WR.signalingUnsub){ WR.signalingUnsub(); WR.signalingUnsub = null; }
+  if(WR.iceUnsub){ WR.iceUnsub(); WR.iceUnsub = null; }
+
+  if(WR.callId && WR.remoteUserId){
+    const rid = WR.remoteUserId;
+    const cid = WR.callId;
+    dbRemove('calls/'+rid+'/incoming').catch(()=>{});
+    dbRemove('calls/'+S.me+'/answer/'+cid).catch(()=>{});
+    dbRemove('calls/'+S.me+'/iceCandidatesFromCaller').catch(()=>{});
+    dbRemove('calls/'+S.me+'/iceCandidatesFromCallee').catch(()=>{});
+    dbRemove('calls/'+rid+'/iceCandidatesFromCaller').catch(()=>{});
+    dbRemove('calls/'+rid+'/iceCandidatesFromCallee').catch(()=>{});
+  }
+
+  // Reset état WR
+  WR.callId = null; WR.remoteUserId = null; WR.isCaller = false;
+  WR.micMuted = false; WR.camOff = true; WR.screenSharing = false;
   WR.iceCandidatesReceived.clear();
-  clearInterval(S.callTimer); S.callTimer=null;
-  S.inCall=false; S.callSec=0;
+
+  // Reset état S
+  clearInterval(S.callTimer); S.callTimer = null;
+  S.inCall = false; S.callSec = 0;
+
+  // Reset UI
   document.getElementById('call-ui').classList.add('hidden');
-  document.getElementById('call-timer').textContent='00:00';
-  // Reset buttons
-  const micBtn=document.getElementById('call-mic-btn');
-  if(micBtn){micBtn.classList.remove('off');micBtn.textContent='🎤';}
-  const camBtn=document.getElementById('call-cam-btn');
-  if(camBtn){camBtn.classList.remove('off');camBtn.textContent='📷';camBtn.classList.add('hidden');}
-  const scrBtn=document.getElementById('call-screen-btn');
-  if(scrBtn){scrBtn.classList.remove('off');scrBtn.textContent='🖥️';}
+  document.getElementById('call-timer').textContent = '00:00';
+  const micBtn = document.getElementById('call-mic-btn');
+  if(micBtn){ micBtn.classList.remove('off'); micBtn.textContent='🎤'; }
+  const camBtn = document.getElementById('call-cam-btn');
+  if(camBtn){ camBtn.classList.remove('off'); camBtn.textContent='📷'; camBtn.classList.add('hidden'); }
+  const scrBtn = document.getElementById('call-screen-btn');
+  if(scrBtn){ scrBtn.classList.remove('off'); scrBtn.textContent='🖥️'; }
   setCallStatus('');
 }
 
-function toggleCallMic(btn){
+// ==================== CONTRÔLES APPEL ====================
+
+/**
+ * CORRECTION MUTE :
+ * Au lieu de juste track.enabled = false (qui ne coupe pas le flux WebRTC),
+ * on remplace le track audio dans le sender par un track silencieux.
+ * L'autre utilisateur reçoit du silence propre.
+ */
+async function toggleCallMic(btn){
   if(!WR.localStream) return;
+
   WR.micMuted = !WR.micMuted;
-  WR.localStream.getAudioTracks().forEach(t => t.enabled = !WR.micMuted);
-  btn.classList.toggle('off', WR.micMuted);
-  btn.textContent = WR.micMuted ? '🔇' : '🎤';
+
+  const audioTracks = WR.localStream.getAudioTracks();
+  if(audioTracks.length === 0) return;
+  const realAudioTrack = audioTracks[0];
+
+  if(WR.micMuted){
+    // Muter : remplacer par silence dans le PC
+    if(WR.silenceTrack){
+      await replaceTrackInPC(WR.silenceTrack, 'audio');
+    } else {
+      // Fallback si AudioContext indisponible : juste disable le track
+      realAudioTrack.enabled = false;
+    }
+    btn.classList.add('off'); btn.textContent = '🔇';
+    // Afficher badge mute sur tuile locale
+    const tile = document.getElementById('local-tile');
+    if(tile && !tile.querySelector('.mute-badge')){
+      const badge = document.createElement('div');
+      badge.className = 'mute-badge';
+      badge.textContent = '🔇 Muet';
+      tile.appendChild(badge);
+    }
+  } else {
+    // Démuter : remettre le vrai track audio
+    realAudioTrack.enabled = true;
+    await replaceTrackInPC(realAudioTrack, 'audio');
+    btn.classList.remove('off'); btn.textContent = '🎤';
+    // Enlever badge mute
+    const badge = document.querySelector('#local-tile .mute-badge');
+    if(badge) badge.remove();
+  }
 }
 
-function toggleCallCam(btn){
+/**
+ * CORRECTION CAMÉRA :
+ * On utilise replaceTrack pour envoyer un track noir quand la caméra est off,
+ * puis le vrai track vidéo quand elle est allumée.
+ */
+async function toggleCallCam(btn){
   if(!WR.localStream) return;
+
   WR.camOff = !WR.camOff;
-  WR.localStream.getVideoTracks().forEach(t => t.enabled = !WR.camOff);
-  btn.classList.toggle('off', WR.camOff);
-  btn.textContent = WR.camOff ? '📵' : '📷';
-  const lv=document.getElementById('local-video');
-  const la=document.getElementById('local-avatar');
-  if(lv) lv.style.display = WR.camOff ? 'none' : 'block';
-  if(la) la.style.display = WR.camOff ? 'flex' : 'none';
+
+  if(WR.camOff){
+    // Éteindre : envoyer un black track au lieu de null
+    if(!WR.blackTrack || WR.blackTrack.readyState === 'ended'){
+      WR.blackTrack = createBlackTrack();
+    }
+    await replaceTrackInPC(WR.blackTrack, 'video');
+    btn.classList.add('off'); btn.textContent = '📵';
+
+    // Masquer le stream local
+    const lv = document.getElementById('local-video');
+    const la = document.getElementById('local-avatar');
+    if(lv) lv.style.display = 'none';
+    if(la) la.style.display = 'flex';
+  } else {
+    // Allumer la caméra
+    let videoTrack = WR.localStream.getVideoTracks()[0];
+
+    if(!videoTrack || videoTrack.readyState === 'ended'){
+      // Pas de track vidéo encore : en demander un nouveau
+      try {
+        const camStream = await navigator.mediaDevices.getUserMedia({
+          video: { width:{ideal:1280}, height:{ideal:720}, facingMode:'user' },
+          audio: false
+        });
+        videoTrack = camStream.getVideoTracks()[0];
+        WR.localStream.addTrack(videoTrack);
+      } catch(e){
+        console.error('Caméra indisponible:', e);
+        WR.camOff = true;
+        showToast('Caméra indisponible','Vérifie les permissions caméra.','#ef4444','📵');
+        return;
+      }
+    } else {
+      videoTrack.enabled = true;
+    }
+
+    await replaceTrackInPC(videoTrack, 'video');
+    btn.classList.remove('off'); btn.textContent = '📷';
+
+    // Afficher la vidéo locale
+    const lv = document.getElementById('local-video');
+    const la = document.getElementById('local-avatar');
+    if(lv){ lv.srcObject = WR.localStream; lv.style.display = 'block'; }
+    if(la) la.style.display = 'none';
+  }
 }
 
+/**
+ * CORRECTION PARTAGE D'ÉCRAN :
+ * On ajoute le track vidéo de l'écran via replaceTrack dans le sender vidéo.
+ * Si aucun sender vidéo n'existe (appel vocal), on en crée un via renegociation.
+ * À l'arrêt du partage, on remet le track vidéo d'origine (ou le black track).
+ */
 async function toggleScreenShare(btn){
   if(WR.screenSharing){
-    if(WR.screenStream){ WR.screenStream.getTracks().forEach(t=>t.stop()); WR.screenStream=null; }
-    WR.screenSharing=false; btn.classList.remove('off'); btn.textContent='🖥️';
-    if(WR.pc && WR.localStream){
-      const vt=WR.localStream.getVideoTracks()[0];
-      if(vt){ const sender=WR.pc.getSenders().find(s=>s.track&&s.track.kind==='video'); if(sender) sender.replaceTrack(vt).catch(()=>{}); }
+    // Arrêter le partage d'écran
+    if(WR.screenStream){
+      WR.screenStream.getTracks().forEach(t => t.stop());
+      WR.screenStream = null;
     }
-    setCallStatus('Partage d\'écran arrêté'); return;
+    WR.screenSharing = false;
+    btn.classList.remove('off'); btn.textContent = '🖥️';
+
+    // Remettre la caméra ou le black track
+    if(WR.callType === 'video' && !WR.camOff){
+      const videoTrack = WR.localStream ? WR.localStream.getVideoTracks()[0] : null;
+      if(videoTrack && videoTrack.readyState !== 'ended'){
+        await replaceTrackInPC(videoTrack, 'video');
+        const lv = document.getElementById('local-video');
+        if(lv){ lv.srcObject = WR.localStream; }
+      }
+    } else {
+      if(!WR.blackTrack || WR.blackTrack.readyState === 'ended'){
+        WR.blackTrack = createBlackTrack();
+      }
+      await replaceTrackInPC(WR.blackTrack, 'video');
+      // Masquer vidéo locale
+      const lv = document.getElementById('local-video');
+      const la = document.getElementById('local-avatar');
+      if(lv) lv.style.display = 'none';
+      if(la) la.style.display = 'flex';
+    }
+    setCallStatus('Partage d\'écran arrêté');
+    return;
   }
+
+  // Démarrer le partage d'écran
   try {
-    WR.screenStream = await navigator.mediaDevices.getDisplayMedia({ video:true, audio:false });
-    WR.screenSharing=true; btn.classList.add('off'); btn.textContent='⏹️';
-    const st=WR.screenStream.getVideoTracks()[0];
-    st.onended=()=>toggleScreenShare(btn);
-    if(WR.pc){ const sender=WR.pc.getSenders().find(s=>s.track&&s.track.kind==='video'); if(sender) await sender.replaceTrack(st).catch(()=>{}); }
-    const lv=document.getElementById('local-video');
-    if(lv){ lv.srcObject=WR.screenStream; lv.style.display='block'; }
-    const la=document.getElementById('local-avatar');
-    if(la) la.style.display='none';
-    setCallStatus('Partage d\'écran actif');
-  } catch(e){ console.error('Screen share error:', e); setCallStatus('Partage d\'écran annulé'); }
+    WR.screenStream = await navigator.mediaDevices.getDisplayMedia({
+      video: { cursor: 'always' },
+      audio: false
+    });
+    WR.screenSharing = true;
+    btn.classList.add('off'); btn.textContent = '⏹️';
+
+    const screenTrack = WR.screenStream.getVideoTracks()[0];
+
+    // Quand l'utilisateur arrête depuis le navigateur
+    screenTrack.onended = () => {
+      if(WR.screenSharing) toggleScreenShare(btn);
+    };
+
+    // Vérifier si un sender vidéo existe dans le PC
+    const videoSender = WR.pc ? WR.pc.getSenders().find(s => s.track && s.track.kind === 'video') : null;
+
+    if(videoSender){
+      // Remplacer le track vidéo existant
+      await videoSender.replaceTrack(screenTrack);
+    } else if(WR.pc && WR.localStream){
+      // Pas de sender vidéo (appel vocal) : ajouter le track
+      // Cela nécessite une renegociation
+      WR.pc.addTrack(screenTrack, WR.screenStream);
+      // Renegocier
+      try {
+        const offer = await WR.pc.createOffer();
+        await WR.pc.setLocalDescription(offer);
+        const cid = uid();
+        await dbSet('calls/'+WR.remoteUserId+'/renegotiate', {
+          from: S.me, offer: JSON.stringify(offer), id: cid
+        });
+      } catch(e){ console.warn('Renegociation screen share:', e); }
+    }
+
+    // Afficher le stream d'écran localement
+    const lv = document.getElementById('local-video');
+    const la = document.getElementById('local-avatar');
+    if(lv){ lv.srcObject = WR.screenStream; lv.style.display = 'block'; }
+    if(la) la.style.display = 'none';
+    setCallStatus('Partage d\'écran actif 🖥️');
+
+  } catch(e){
+    console.error('Screen share error:', e);
+    WR.screenSharing = false;
+    if(e.name !== 'NotAllowedError'){
+      showToast('Erreur','Impossible de partager l\'écran.','#ef4444','!');
+    }
+    setCallStatus('Partage d\'écran annulé');
+  }
 }
 
-function toggleMic(btn){ S.micOn=!S.micOn; btn.style.opacity=S.micOn?1:.4; }
-function toggleDeaf(btn){ S.deafOn=!S.deafOn; btn.style.opacity=S.deafOn?.4:1; }
+// Boutons micro/casque dans la barre inférieure (pas dans un appel actif)
+function toggleMic(btn){
+  S.micOn = !S.micOn;
+  btn.style.opacity = S.micOn ? 1 : .4;
+  btn.textContent = S.micOn ? '🎤' : '🔇';
+}
+function toggleDeaf(btn){
+  S.deafOn = !S.deafOn;
+  btn.style.opacity = S.deafOn ? .4 : 1;
+  btn.textContent = S.deafOn ? '🔕' : '🎧';
+}
 
 // ==================== RENDER APP ====================
 function renderApp(){ renderServersBar(); renderUserBar(); }
@@ -1056,7 +1418,6 @@ function showChannel(chId){
 
 function openDm(userId){
   S.activeDm=userId; S.view='dm'; S.activeServer=null; S.activeChannel=null;
-  // Clear unread
   if(S.dmUnread[userId]){ delete S.dmUnread[userId]; renderLeftPanel('dm'); }
   renderDm(userId); renderLeftPanel('dm');
   document.getElementById('right-panel').classList.add('hidden');
@@ -1412,7 +1773,6 @@ async function deleteMsg(msgId, type, contextId){
 let _channelListener=null;
 let _channelListenerId=null;
 function listenChannel(chId){
-  // ===== FIX: Cleanup ancien listener avant d'en créer un nouveau =====
   if(_channelListener && _channelListenerId){
     off(_channelListener);
     _channelListener=null;
@@ -1516,7 +1876,6 @@ function chCtxMenu(e,chId){
   ]);
 }
 
-// ===== FIX: Bug quote dans removeFriend =====
 function userCtxMenu(e,userId){
   e.preventDefault(); e.stopPropagation();
   const fu=S.users[userId]; if(!fu)return;
@@ -1714,8 +2073,9 @@ function showSettingsSection(section,btn){
     </div>`;
   } else if(section==='audio'){
     content.innerHTML=`<div class="settings-section"><h3>Audio & Vidéo</h3>
-      <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Les appels utilisent WebRTC — ton navigateur gère le micro et la caméra. Assure-toi d'avoir autorisé les permissions.</p>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Les appels utilisent WebRTC. Assure-toi d'avoir autorisé micro/caméra dans ton navigateur.</p>
       <div class="toggle-row"><div class="toggle-info"><div class="toggle-label">Réduction de bruit</div><div class="toggle-desc">Traitement WebRTC natif</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+      <div class="toggle-row"><div class="toggle-info"><div class="toggle-label">Annulation d'écho</div><div class="toggle-desc">Activé par défaut</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
       <div class="field" style="margin-top:16px;"><label>Volume micro</label><input type="range" min="0" max="100" value="80"/></div>
       <div style="display:flex;gap:8px;margin-top:12px;">
         <button class="btn btn-ghost" style="flex:1;" onclick="testMic()">🎤 Tester le micro</button>
@@ -2017,4 +2377,4 @@ init();
 </body>
 </html>
 HTMLEOF
-echo "Done: $(wc -l < /home/claude/hmd_talk_fixed.html) lines"
+echo "Done: $(wc -l < /home/claude/hmd_talk_fixed.html) lignes"
