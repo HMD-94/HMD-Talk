@@ -63,7 +63,8 @@ input,textarea{font-family:inherit;}
 .ch-item .ch-icon{color:var(--text3);font-size:16px;flex-shrink:0;}
 .ch-item .ch-notif{margin-left:auto;background:var(--red);color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:2px 6px;min-width:18px;text-align:center;}
 .user-bar{padding:8px 12px;background:var(--bg1);display:flex;align-items:center;gap:8px;border-top:1px solid var(--border);}
-.user-bar .ub-avatar{width:32px;height:32px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;position:relative;}
+.user-bar .ub-avatar{width:32px;height:32px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;position:relative;overflow:hidden;}
+.user-bar .ub-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
 .user-bar .ub-info{flex:1;min-width:0;}
 .user-bar .ub-name{font-size:13px;font-weight:700;color:var(--text1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .user-bar .ub-status{font-size:11px;color:var(--text2);}
@@ -85,7 +86,8 @@ input,textarea{font-family:inherit;}
 .messages-area{flex:1;overflow-y:auto;padding:16px 0;}
 .msg-group{display:flex;gap:12px;padding:4px 16px;margin:2px 0;}
 .msg-group:hover{background:rgba(255,255,255,.02);}
-.msg-avatar{width:40px;height:40px;border-radius:50%;flex-shrink:0;margin-top:2px;cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;color:#fff;}
+.msg-avatar{width:40px;height:40px;border-radius:50%;flex-shrink:0;margin-top:2px;cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;color:#fff;overflow:hidden;}
+.msg-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
 .msg-content{flex:1;min-width:0;}
 .msg-header{display:flex;align-items:baseline;gap:8px;margin-bottom:3px;}
 .msg-author{font-size:15px;font-weight:700;cursor:pointer;}
@@ -111,14 +113,16 @@ input,textarea{font-family:inherit;}
 .rp-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
 .member-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;transition:.15s;}
 .member-item:hover{background:var(--bg3);}
-.member-avatar{width:32px;height:32px;border-radius:50%;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;}
+.member-avatar{width:32px;height:32px;border-radius:50%;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;overflow:hidden;}
+.member-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
 .member-info{flex:1;min-width:0;}
 .member-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .member-status{font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .dm-item{display:flex;align-items:center;gap:10px;padding:6px 12px;cursor:pointer;border-radius:8px;margin:1px 8px;transition:.15s;position:relative;}
 .dm-item:hover{background:var(--bg3);}
 .dm-item.active{background:var(--bg4);}
-.dm-avatar{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;position:relative;}
+.dm-avatar{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;position:relative;overflow:hidden;}
+.dm-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
 .dm-info{flex:1;min-width:0;}
 .dm-name{font-size:14px;font-weight:600;}
 .dm-preview{font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -176,6 +180,21 @@ input,textarea{font-family:inherit;}
 .color-swatch:hover{transform:scale(1.1);}
 .color-swatch.selected{border-color:var(--text1);}
 
+/* ===== AVATAR UPLOAD ===== */
+.avatar-upload-zone{position:relative;width:80px;height:80px;margin-top:-40px;margin-bottom:8px;cursor:pointer;}
+.avatar-upload-zone .avatar-circle{width:80px;height:80px;border-radius:50%;border:5px solid var(--bg2);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;overflow:hidden;transition:.2s;}
+.avatar-upload-zone .avatar-circle img{width:100%;height:100%;object-fit:cover;}
+.avatar-upload-zone .avatar-overlay{position:absolute;inset:5px;border-radius:50%;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;flex-direction:column;gap:2px;}
+.avatar-upload-zone:hover .avatar-overlay{display:flex;}
+.avatar-overlay span{font-size:18px;}
+.avatar-overlay small{font-size:9px;color:rgba(255,255,255,.8);font-weight:700;text-transform:uppercase;}
+.avatar-upload-settings{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.avatar-preview-settings{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;overflow:hidden;flex-shrink:0;cursor:pointer;position:relative;border:3px solid var(--border);transition:.2s;}
+.avatar-preview-settings:hover{border-color:var(--accent1);}
+.avatar-preview-settings img{width:100%;height:100%;object-fit:cover;}
+.avatar-preview-settings .avatar-hover-overlay{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;font-size:20px;}
+.avatar-preview-settings:hover .avatar-hover-overlay{display:flex;}
+
 /* ===== CALL UI ===== */
 .call-ui{position:fixed;inset:0;background:#0a0a0f;z-index:200;display:flex;flex-direction:column;}
 .call-videos{flex:1;display:grid;place-items:center;gap:12px;padding:16px;background:#000;position:relative;}
@@ -184,7 +203,8 @@ input,textarea{font-family:inherit;}
 .call-video-tile{background:#111;border-radius:12px;width:100%;height:100%;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;border:2px solid transparent;transition:.3s;}
 .call-video-tile.speaking{border-color:var(--green);}
 .call-video-tile video{width:100%;height:100%;object-fit:cover;border-radius:10px;display:block;}
-.call-video-tile .tile-avatar{width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;color:#fff;}
+.call-video-tile .tile-avatar{width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;color:#fff;overflow:hidden;}
+.call-video-tile .tile-avatar img{width:100%;height:100%;object-fit:cover;}
 .call-video-tile .tile-name{position:absolute;bottom:10px;left:10px;background:rgba(0,0,0,.7);padding:4px 10px;border-radius:6px;font-size:13px;font-weight:600;}
 .call-video-tile .tile-muted{position:absolute;top:10px;right:10px;background:rgba(239,68,68,.85);border-radius:6px;padding:4px 8px;font-size:12px;}
 .call-controls{padding:16px;display:flex;align-items:center;justify-content:center;gap:12px;background:var(--bg2);}
@@ -210,7 +230,8 @@ input,textarea{font-family:inherit;}
 .friends-tab.active{background:var(--accent1);color:#fff;}
 .friend-item{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.04);transition:.15s;}
 .friend-item:hover{background:var(--bg3);}
-.friend-avatar{width:40px;height:40px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;position:relative;}
+.friend-avatar{width:40px;height:40px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;position:relative;overflow:hidden;}
+.friend-avatar img{width:100%;height:100%;object-fit:cover;}
 .friend-info{flex:1;min-width:0;}
 .friend-name{font-size:15px;font-weight:700;}
 .friend-status{font-size:13px;color:var(--text2);}
@@ -237,7 +258,8 @@ input,textarea{font-family:inherit;}
 .toast-container{position:fixed;bottom:20px;right:20px;z-index:1000;display:flex;flex-direction:column;gap:8px;}
 .toast{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 16px;min-width:280px;max-width:350px;display:flex;align-items:flex-start;gap:10px;animation:slideIn .3s ease;box-shadow:0 4px 20px rgba(0,0,0,.4);}
 @keyframes slideIn{from{transform:translateX(100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
-.toast-avatar{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;}
+.toast-avatar{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;overflow:hidden;}
+.toast-avatar img{width:100%;height:100%;object-fit:cover;}
 .toast-content{flex:1;min-width:0;}
 .toast-title{font-size:13px;font-weight:700;}
 .toast-body{font-size:12px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -286,9 +308,18 @@ input,textarea{font-family:inherit;}
 .perm-banner{background:rgba(124,92,252,.15);border:1px solid var(--accent1);border-radius:10px;padding:12px 16px;margin:12px 16px;font-size:13px;display:flex;align-items:center;gap:10px;}
 .perm-banner button{background:var(--grad);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;}
 .dm-unread{background:var(--red);color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:2px 5px;min-width:16px;text-align:center;margin-left:auto;}
-
-/* Indicateur mute visible sur la tuile */
 .mute-badge{position:absolute;top:8px;right:8px;background:rgba(239,68,68,.9);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;color:#fff;}
+
+/* Ringtone volume slider */
+.volume-slider-row{display:flex;align-items:center;gap:12px;padding:8px 0;}
+.volume-slider-row input[type=range]{flex:1;-webkit-appearance:none;height:6px;border-radius:3px;background:var(--bg4);outline:none;}
+.volume-slider-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent1);cursor:pointer;}
+.volume-slider-row .vol-icon{font-size:18px;flex-shrink:0;width:24px;text-align:center;}
+.volume-slider-row .vol-val{font-size:12px;color:var(--text2);width:32px;text-align:right;flex-shrink:0;}
+
+/* Ringtone pulse animation on incoming call */
+@keyframes ringPulse{0%,100%{box-shadow:0 0 0 0 rgba(124,92,252,.6);}50%{box-shadow:0 0 0 12px rgba(124,92,252,0);}}
+.incoming-call .ring-pulse{animation:ringPulse 1s ease-in-out infinite;}
 </style>
 </head>
 <body>
@@ -384,6 +415,9 @@ input,textarea{font-family:inherit;}
 <div class="toast-container" id="toasts"></div>
 <div id="emoji-picker" class="emoji-picker hidden"></div>
 
+<!-- Hidden audio for ringtone -->
+<audio id="ringtone-audio" loop></audio>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, set, get, onValue, off, update, remove }
@@ -411,29 +445,27 @@ let S = {
   inCall: false, callTimer: null, callSec: 0,
   _listeners: [], _seenMsgToast: {}, _seenFriendToast: {},
   dmUnread: {},
+  // Ringtone settings
+  ringtoneVolume: 40, // 0-100
+  ringtoneEnabled: true,
 };
 
 // ==================== WebRTC STATE ====================
-// On sépare proprement l'état WebRTC pour éviter les conflits
 let WR = {
   pc: null,
-  localStream: null,       // stream micro+caméra
-  screenStream: null,      // stream partage écran
+  localStream: null,
+  screenStream: null,
   callId: null,
-  callType: 'voice',       // 'voice' | 'video'
+  callType: 'voice',
   isCaller: false,
   remoteUserId: null,
-  // États mute/caméra (source de vérité unique)
   micMuted: false,
   camOff: true,
   screenSharing: false,
-  // Signaling cleanup
   signalingUnsub: null,
   iceUnsub: null,
   iceCandidatesReceived: new Set(),
-  // Silence track pour remplacer audio quand muté
   silenceTrack: null,
-  // Black track pour remplacer vidéo quand caméra off
   blackTrack: null,
 };
 
@@ -451,6 +483,85 @@ const EMOJIS = ['😀','😂','🥹','😍','🥰','😎','🤩','🥳','😜','
 const AVATAR_COLORS = ['linear-gradient(135deg,#7c5cfc,#a855f7)','linear-gradient(135deg,#3b82f6,#06b6d4)','linear-gradient(135deg,#10b981,#22c55e)','linear-gradient(135deg,#f97316,#eab308)','linear-gradient(135deg,#ec4899,#f97316)','linear-gradient(135deg,#ef4444,#f97316)'];
 const STATUS_LABELS = {online:'🟢 En ligne',idle:'🟡 Absent',dnd:'🔴 Ne pas déranger',offline:'⚫ Invisible'};
 
+// ==================== RINGTONE ENGINE ====================
+// Generate a pleasant ringtone using Web Audio API (no external file needed)
+let _ringtoneCtx = null;
+let _ringtoneNodes = [];
+let _ringtoneInterval = null;
+
+function createRingtoneContext(){
+  if(!_ringtoneCtx) _ringtoneCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return _ringtoneCtx;
+}
+
+function playRingTone(){
+  if(!S.ringtoneEnabled) return;
+  stopRingTone();
+  const vol = S.ringtoneVolume / 100;
+  if(vol === 0) return;
+
+  // Play a short melodic ring pattern then repeat
+  function playPattern(){
+    const ctx = createRingtoneContext();
+    if(ctx.state === 'suspended') ctx.resume();
+
+    // Pattern: 3 notes (like a classic phone ring)
+    const notes = [
+      { freq: 880, start: 0,   dur: 0.12 },
+      { freq: 1100, start: 0.15, dur: 0.12 },
+      { freq: 880, start: 0.30, dur: 0.12 },
+    ];
+    const masterGain = ctx.createGain();
+    masterGain.gain.value = vol * 0.35; // keep it soft, max 35% master
+    masterGain.connect(ctx.destination);
+
+    notes.forEach(n => {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.connect(g); g.connect(masterGain);
+      osc.type = 'sine';
+      osc.frequency.value = n.freq;
+      const t = ctx.currentTime + n.start;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(1, t + 0.02);
+      g.gain.setValueAtTime(1, t + n.dur - 0.03);
+      g.gain.linearRampToValueAtTime(0, t + n.dur);
+      osc.start(t);
+      osc.stop(t + n.dur);
+      _ringtoneNodes.push(osc);
+    });
+  }
+
+  playPattern();
+  _ringtoneInterval = setInterval(playPattern, 1800);
+}
+
+function stopRingTone(){
+  if(_ringtoneInterval){ clearInterval(_ringtoneInterval); _ringtoneInterval = null; }
+  _ringtoneNodes.forEach(n => { try{ n.stop(); }catch(e){} });
+  _ringtoneNodes = [];
+}
+
+// ==================== BROWSER NOTIFICATIONS ====================
+async function requestNotificationPermission(){
+  if('Notification' in window && Notification.permission === 'default'){
+    await Notification.requestPermission();
+  }
+}
+
+function sendBrowserNotif(title, body, icon){
+  if(!('Notification' in window) || Notification.permission !== 'granted') return;
+  const n = new Notification(title, {
+    body,
+    icon: icon || null,
+    tag: 'hmd-call',
+    renotify: true,
+    requireInteraction: true, // stays until user interacts
+  });
+  n.onclick = () => { window.focus(); n.close(); };
+  return n;
+}
+
 // ==================== FIREBASE HELPERS ====================
 function dbRef(path){ return ref(db, path); }
 async function dbGet(path){ const snap = await get(dbRef(path)); return snap.exists() ? snap.val() : null; }
@@ -465,6 +576,13 @@ function dbListen(path, cb){
 }
 function saveSession(uid){ localStorage.setItem('hmd_session', uid||''); }
 function loadSession(){ return localStorage.getItem('hmd_session')||null; }
+function saveSettings(){ localStorage.setItem('hmd_ringtone_vol', S.ringtoneVolume); localStorage.setItem('hmd_ringtone_on', S.ringtoneEnabled?'1':'0'); }
+function loadSettings(){
+  const vol = localStorage.getItem('hmd_ringtone_vol');
+  const on = localStorage.getItem('hmd_ringtone_on');
+  if(vol !== null) S.ringtoneVolume = parseInt(vol);
+  if(on !== null) S.ringtoneEnabled = on === '1';
+}
 
 // ==================== UTILS ====================
 function uid(){ return Math.random().toString(36).substr(2,9)+'_'+Date.now().toString(36); }
@@ -482,6 +600,16 @@ function formatMsg(txt){
   return txt;
 }
 function getDmKey(a,b){ return [a,b].sort().join('__'); }
+
+// Build avatar HTML (supports avatarImg)
+function avatarHtml(u, size=40, extraStyle=''){
+  if(!u) return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:${size*0.35}px;font-weight:700;color:#fff;${extraStyle}">?</div>`;
+  const bg = u.color||avatarColor(u.username);
+  if(u.avatarImg){
+    return `<div style="width:${size}px;height:${size}px;border-radius:50%;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;${extraStyle}"><img src="${u.avatarImg}" style="width:100%;height:100%;object-fit:cover;" alt=""/></div>`;
+  }
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${bg};display:flex;align-items:center;justify-content:center;font-size:${size*0.35}px;font-weight:700;color:#fff;flex-shrink:0;${extraStyle}">${initials(u.username)}</div>`;
+}
 
 // ==================== AUTH ====================
 function showAuthTab(tab){
@@ -514,7 +642,7 @@ async function doRegister(){
   err.textContent='Vérification...';
   const existing = await dbGet('users/'+key);
   if(existing){err.textContent='Ce pseudo est déjà pris !';return;}
-  const newUser={id:key,username:user,password:pass,status:'online',bio:'',banner:null,color:avatarColor(user),theme:'theme-purple',joinedAt:Date.now(),nitro:true,badges:['nitro'],customColor:null,nameColor:null};
+  const newUser={id:key,username:user,password:pass,status:'online',bio:'',banner:null,color:avatarColor(user),theme:'theme-purple',joinedAt:Date.now(),nitro:true,badges:['nitro'],customColor:null,nameColor:null,avatarImg:null};
   await dbSet('users/'+key, newUser);
   const srvs = await dbGet('servers') || {};
   for(const sid of Object.keys(srvs)){
@@ -544,6 +672,7 @@ async function enterApp(){
     document.body.className=u&&u.theme?u.theme:'theme-purple';
     S.theme=u&&u.theme?u.theme:'theme-purple';
     renderApp(); showView('home'); setupListeners(); listenIncomingCalls();
+    requestNotificationPermission();
   },800);
 }
 
@@ -591,13 +720,13 @@ function setupListeners(){
     Object.keys(S.pendingIn[S.me]).forEach(fid=>{
       if(!prev[fid]&&S.users[fid]&&!S._seenFriendToast['req_'+fid]){
         S._seenFriendToast['req_'+fid]=1;
-        showToast('Demande d\'ami reçue !',S.users[fid].username+' veut être ton ami.',S.users[fid].color||avatarColor(S.users[fid].username),initials(S.users[fid].username));
+        const fu=S.users[fid];
+        showToast('Demande d\'ami reçue !',fu.username+' veut être ton ami.',fu.color||avatarColor(fu.username),initials(fu.username),fu.avatarImg);
       }
     });
     if(S.view==='friends')renderFriendsView();
   });
   dbListen('pendingOut/'+S.me, val=>{ S.pendingOut[S.me]=val||{}; if(S.view==='friends')renderFriendsView(); });
-
   dbListen('dms', val=>{
     const prevDms = S.dms;
     S.dms=val||{};
@@ -614,7 +743,7 @@ function setupListeners(){
             S.dmUnread[fid] = (S.dmUnread[fid]||0)+1;
           }
           const fu=S.users[fid];
-          showToast(fu?fu.username:'Message',latest.content.slice(0,60),fu?fu.color||avatarColor(fu.username):avatarColor(fid),initials(fu?fu.username:fid));
+          showToast(fu?fu.username:'Message',latest.content.slice(0,60),fu?fu.color||avatarColor(fu.username):avatarColor(fid),initials(fu?fu.username:fid),fu?fu.avatarImg:null);
         }
       }
     });
@@ -640,12 +769,32 @@ function showIncomingCall(data){
   const fu = S.users[data.from];
   if(!fu) return;
   const typeLabel = data.type === 'video' ? 'vidéo' : 'vocal';
+
+  // Play ringtone
+  playRingTone();
+
+  // Browser notification (background support)
+  sendBrowserNotif(
+    `📞 Appel ${typeLabel} entrant`,
+    `${fu.username} t'appelle sur HMD Talk`,
+    fu.avatarImg || null
+  );
+
+  const avatarContent = fu.avatarImg
+    ? `<img src="${fu.avatarImg}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;" alt=""/>`
+    : `<span style="font-size:16px;font-weight:700;color:#fff;">${initials(fu.username)}</span>`;
+
   const container = document.getElementById('incoming-call-ui');
   container.innerHTML = `
     <div class="incoming-call">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-        <div style="width:44px;height:44px;border-radius:50%;background:${fu.color||avatarColor(fu.username)};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;">${initials(fu.username)}</div>
-        <div><h3>Appel ${typeLabel} entrant</h3><p>${fu.username} t'appelle...</p></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <div class="ring-pulse" style="width:48px;height:48px;border-radius:50%;background:${fu.color||avatarColor(fu.username)};display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;">
+          ${avatarContent}
+        </div>
+        <div>
+          <h3>Appel ${typeLabel} entrant</h3>
+          <p style="margin:0;">${fu.username} t'appelle...</p>
+        </div>
       </div>
       <div class="incoming-call-btns">
         <button class="btn-decline" id="btn-decline-call">✕ Refuser</button>
@@ -655,10 +804,15 @@ function showIncomingCall(data){
   container.classList.remove('hidden');
   document.getElementById('btn-decline-call').onclick = () => declineCall(data.callId, data.from);
   document.getElementById('btn-accept-call').onclick = () => acceptCall(data);
-  setTimeout(()=>{ container.classList.add('hidden'); container.innerHTML=''; }, 30000);
+  setTimeout(()=>{
+    stopRingTone();
+    container.classList.add('hidden');
+    container.innerHTML='';
+  }, 30000);
 }
 
 async function declineCall(callId, fromId){
+  stopRingTone();
   document.getElementById('incoming-call-ui').classList.add('hidden');
   document.getElementById('incoming-call-ui').innerHTML='';
   await dbSet('calls/'+fromId+'/answer/'+callId, { declined: true });
@@ -666,6 +820,7 @@ async function declineCall(callId, fromId){
 }
 
 async function acceptCall(data){
+  stopRingTone();
   document.getElementById('incoming-call-ui').classList.add('hidden');
   document.getElementById('incoming-call-ui').innerHTML='';
   await dbRemove('calls/'+S.me+'/incoming');
@@ -678,27 +833,13 @@ async function acceptCall(data){
 }
 
 // ==================== WEBRTC HELPERS ====================
-
-/**
- * Crée un track audio silencieux via AudioContext.
- * Utilisé pour remplacer le micro quand on se mute,
- * sans couper le sender — ça garantit que l'autre entend le silence
- * plutôt qu'une erreur de track null.
- */
 function createSilenceTrack(){
   const ctx = new (window.AudioContext || window.webkitAudioContext)();
   const dst = ctx.createMediaStreamDestination();
-  const osc = ctx.createOscillator();
-  // On ne connecte pas l'oscillateur : on obtient un silence pur
   ctx.createGain().connect(dst);
   return dst.stream.getAudioTracks()[0];
 }
 
-/**
- * Crée un track vidéo noir (1x1 pixel, 1fps).
- * Utilisé pour remplacer la caméra quand elle est désactivée
- * sans supprimer le sender vidéo de la connexion.
- */
 function createBlackTrack(){
   const canvas = document.createElement('canvas');
   canvas.width = 2; canvas.height = 2;
@@ -709,11 +850,6 @@ function createBlackTrack(){
   return stream.getVideoTracks()[0];
 }
 
-/**
- * Remplace un track dans le RTCPeerConnection.
- * On cherche le sender correspondant au kind (audio/video)
- * et on remplace le track envoyé, sans renegocier.
- */
 async function replaceTrackInPC(newTrack, kind){
   if(!WR.pc) return;
   const sender = WR.pc.getSenders().find(s => s.track && s.track.kind === kind);
@@ -723,17 +859,7 @@ async function replaceTrackInPC(newTrack, kind){
   }
 }
 
-/**
- * Ajoute un track audio dans le PC même si aucun sender audio n'existe.
- * Nécessaire si on démarre sans micro et qu'on l'active ensuite.
- */
-async function addTrackToPC(track, stream){
-  if(!WR.pc) return;
-  WR.pc.addTrack(track, stream);
-}
-
 // ==================== WEBRTC CORE ====================
-
 async function initWebRTCCall(isCaller, remoteOffer){
   const callType = WR.callType;
   const remoteUserId = WR.remoteUserId;
@@ -754,7 +880,6 @@ async function initWebRTCCall(isCaller, remoteOffer){
   if(callType === 'video') camBtn.classList.remove('hidden');
   else camBtn.classList.add('hidden');
 
-  // Reset boutons
   const micBtn = document.getElementById('call-mic-btn');
   if(micBtn){ micBtn.classList.remove('off'); micBtn.textContent='🎤'; }
   const scrBtn = document.getElementById('call-screen-btn');
@@ -762,11 +887,9 @@ async function initWebRTCCall(isCaller, remoteOffer){
 
   buildCallTiles(fu, callType);
 
-  // ---- Acquisition du stream local ----
   try {
     const constraints = {
       audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-      // On demande la vidéo uniquement pour les appels vidéo
       video: callType === 'video'
         ? { width:{ ideal:1280 }, height:{ ideal:720 }, facingMode:'user' }
         : false
@@ -776,7 +899,6 @@ async function initWebRTCCall(isCaller, remoteOffer){
 
     if(callType === 'video'){
       WR.camOff = false;
-      // Afficher la caméra locale
       const lv = document.getElementById('local-video');
       const la = document.getElementById('local-avatar');
       if(lv){ lv.srcObject = WR.localStream; lv.style.display='block'; }
@@ -784,8 +906,6 @@ async function initWebRTCCall(isCaller, remoteOffer){
       if(camBtn){ camBtn.classList.remove('off'); camBtn.textContent='📷'; }
     }
   } catch(e){
-    console.error('Erreur media:', e);
-    // Tente fallback audio only
     try {
       WR.localStream = await navigator.mediaDevices.getUserMedia({
         audio:{ echoCancellation:true, noiseSuppression:true, autoGainControl:true },
@@ -798,7 +918,6 @@ async function initWebRTCCall(isCaller, remoteOffer){
         if(camBtn) camBtn.classList.add('hidden');
       }
     } catch(e2){
-      console.error('Erreur audio fallback:', e2);
       if(e.name==='NotAllowedError'||e2.name==='NotAllowedError'){
         showToast('Permission refusée','Autorise le micro dans ton navigateur pour appeler.','#ef4444','🎤');
       } else {
@@ -808,32 +927,21 @@ async function initWebRTCCall(isCaller, remoteOffer){
     }
   }
 
-  // Afficher le stream local audio (pas de vidéo si appel vocal)
   if(callType !== 'video'){
     const lv = document.getElementById('local-video');
     if(lv) lv.style.display = 'none';
   }
 
-  // ---- Création RTCPeerConnection ----
   WR.pc = new RTCPeerConnection(ICE_SERVERS);
-
-  // Ajouter tous les tracks locaux
   WR.localStream.getTracks().forEach(track => WR.pc.addTrack(track, WR.localStream));
 
-  // Pour appel vocal : on ajoute quand même un black track vidéo pour que le sender existe
-  // (nécessaire pour replaceTrack lors du partage d'écran)
   if(callType === 'voice'){
     WR.blackTrack = createBlackTrack();
-    // On n'ajoute pas le black track au PC pour un appel vocal pur
-    // (pas besoin de vidéo, on ajoutera lors du screen share)
   }
 
-  // Pré-créer le silence track au cas où
   try { WR.silenceTrack = createSilenceTrack(); } catch(e){ console.warn('AudioContext non dispo:', e); }
 
-  // ---- Handlers WebRTC ----
   WR.pc.ontrack = e => {
-    console.log('🔊 Track reçu:', e.track.kind, e.streams[0]);
     setCallStatus('Connecté ✓');
     attachRemoteStream(e.streams[0], e.track.kind);
     if(!S.callTimer){
@@ -847,7 +955,6 @@ async function initWebRTCCall(isCaller, remoteOffer){
   WR.pc.onicecandidate = e => {
     if(!e.candidate) return;
     const cid = uid();
-    // CORRECTION : caller envoie ses candidats au callee et vice versa
     const targetPath = isCaller
       ? `calls/${remoteUserId}/iceCandidatesFromCaller/${cid}`
       : `calls/${remoteUserId}/iceCandidatesFromCallee/${cid}`;
@@ -856,45 +963,30 @@ async function initWebRTCCall(isCaller, remoteOffer){
 
   WR.pc.oniceconnectionstatechange = () => {
     const st = WR.pc ? WR.pc.iceConnectionState : '';
-    console.log('ICE state:', st);
-    if(st === 'connected' || st === 'completed'){
-      setCallStatus('Connecté ✓');
-    } else if(st === 'checking'){
-      setCallStatus('Connexion en cours...');
-    } else if(st === 'failed'){
-      setCallStatus('Connexion échouée ✗');
-      showToast('Connexion échouée','Vérifie ta connexion et réessaie.','#ef4444','!');
-    } else if(st === 'disconnected'){
-      setCallStatus('Déconnecté...');
-    }
+    if(st === 'connected' || st === 'completed') setCallStatus('Connecté ✓');
+    else if(st === 'checking') setCallStatus('Connexion en cours...');
+    else if(st === 'failed'){ setCallStatus('Connexion échouée ✗'); showToast('Connexion échouée','Vérifie ta connexion et réessaie.','#ef4444','!'); }
+    else if(st === 'disconnected') setCallStatus('Déconnecté...');
   };
 
   WR.pc.onconnectionstatechange = () => {
-    if(WR.pc && WR.pc.connectionState === 'failed'){
-      setCallStatus('Connexion échouée ✗');
-    }
+    if(WR.pc && WR.pc.connectionState === 'failed') setCallStatus('Connexion échouée ✗');
   };
 
-  // ---- Signaling ----
   if(isCaller){
     try {
-      const offer = await WR.pc.createOffer({
-        offerToReceiveAudio: true,
-        offerToReceiveVideo: true  // toujours true pour permettre screen share
-      });
+      const offer = await WR.pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
       await WR.pc.setLocalDescription(offer);
       setCallStatus('Sonnerie...');
 
       const callId = WR.callId || uid();
       WR.callId = callId;
 
-      // Envoyer l'appel entrant à l'autre
       await dbSet('calls/'+remoteUserId+'/incoming', {
         callId, from: S.me, type: callType,
         offer: JSON.stringify(offer)
       });
 
-      // Écouter la réponse
       const answerRef = dbRef('calls/'+S.me+'/answer/'+callId);
       const unsubAnswer = onValue(answerRef, async snap => {
         if(!snap.exists()) return;
@@ -909,7 +1001,6 @@ async function initWebRTCCall(isCaller, remoteOffer){
           try {
             const answer = JSON.parse(val.answer);
             await WR.pc.setRemoteDescription(new RTCSessionDescription(answer));
-            // Après setRemoteDescription, écouter les candidats du callee
             listenIceCandidates('callee');
           } catch(e){ console.error('setRemoteDescription error:', e); }
         }
@@ -917,40 +1008,25 @@ async function initWebRTCCall(isCaller, remoteOffer){
       WR.signalingUnsub = () => { off(answerRef, unsubAnswer); };
 
     } catch(e){
-      console.error('createOffer error:', e);
       showToast('Erreur','Impossible de créer l\'appel.','#ef4444','!');
       endCall();
     }
 
   } else {
-    // Callee : répondre
     try {
       const offer = JSON.parse(remoteOffer);
       await WR.pc.setRemoteDescription(new RTCSessionDescription(offer));
-      const answer = await WR.pc.createAnswer({
-        offerToReceiveAudio: true,
-        offerToReceiveVideo: true
-      });
+      const answer = await WR.pc.createAnswer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
       await WR.pc.setLocalDescription(answer);
-      // Envoyer la réponse au caller
-      await dbSet('calls/'+WR.remoteUserId+'/answer/'+WR.callId, {
-        answer: JSON.stringify(answer)
-      });
-      // Écouter les candidats du caller
+      await dbSet('calls/'+WR.remoteUserId+'/answer/'+WR.callId, { answer: JSON.stringify(answer) });
       listenIceCandidates('caller');
     } catch(e){
-      console.error('createAnswer error:', e);
       showToast('Erreur','Impossible de répondre à l\'appel.','#ef4444','!');
       endCall();
     }
   }
 }
 
-/**
- * CORRECTION MAJEURE : les chemins ICE étaient inversés.
- * - Le caller écoute iceCandidatesFromCallee
- * - Le callee écoute iceCandidatesFromCaller
- */
 function listenIceCandidates(role){
   const path = role === 'caller'
     ? `calls/${S.me}/iceCandidatesFromCaller`
@@ -964,27 +1040,33 @@ function listenIceCandidates(role){
       const cid = data.id || String(data.ts);
       if(WR.iceCandidatesReceived.has(cid)) return;
       WR.iceCandidatesReceived.add(cid);
-      try {
-        await WR.pc.addIceCandidate(new RTCIceCandidate(JSON.parse(data.candidate)));
-      } catch(e){ console.warn('addIceCandidate:', e); }
+      try { await WR.pc.addIceCandidate(new RTCIceCandidate(JSON.parse(data.candidate))); }
+      catch(e){ console.warn('addIceCandidate:', e); }
     });
   });
   WR.iceUnsub = () => { off(r, listener); };
 }
 
-// ---- UI Tiles ----
 function buildCallTiles(fu, callType){
   const vids = document.getElementById('call-videos');
   const me = S.users[S.me];
   vids.className = 'call-videos grid-2';
+
+  const localAvatarHtml = me && me.avatarImg
+    ? `<img src="${me.avatarImg}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`
+    : initials(me?me.username:'');
+  const remoteAvatarHtml = fu && fu.avatarImg
+    ? `<img src="${fu.avatarImg}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`
+    : initials(fu?fu.username:'');
+
   vids.innerHTML = `
     <div class="call-video-tile speaking" id="local-tile">
-      <div class="tile-avatar" id="local-avatar" style="background:${me?me.color||avatarColor(me.username):'var(--grad)'}">${initials(me?me.username:'')}</div>
+      <div class="tile-avatar" id="local-avatar" style="background:${me?me.color||avatarColor(me.username):'var(--grad)'}">${localAvatarHtml}</div>
       <video id="local-video" autoplay muted playsinline style="display:none;width:100%;height:100%;object-fit:cover;border-radius:10px;"></video>
       <div class="tile-name">${me?me.username:'Moi'} (moi)</div>
     </div>
     <div class="call-video-tile" id="remote-tile">
-      <div class="tile-avatar" id="remote-avatar" style="background:${fu?fu.color||avatarColor(fu.username):'var(--bg4)'}">${initials(fu?fu.username:'')}</div>
+      <div class="tile-avatar" id="remote-avatar" style="background:${fu?fu.color||avatarColor(fu.username):'var(--bg4)'}">${remoteAvatarHtml}</div>
       <video id="remote-video" autoplay playsinline style="display:none;width:100%;height:100%;object-fit:cover;border-radius:10px;"></video>
       <div class="tile-name">${fu?fu.username:'Correspondant'}</div>
       <div id="remote-status" style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,.6);border-radius:6px;padding:4px 8px;font-size:12px;color:var(--text2);">📞 Sonnerie...</div>
@@ -996,15 +1078,10 @@ function attachRemoteStream(stream, kind){
   const ra = document.getElementById('remote-avatar');
   const rs = document.getElementById('remote-status');
   if(!rv) return;
-
-  // Toujours assigner le stream complet
   if(!rv.srcObject) rv.srcObject = stream;
-
   if(rs) rs.remove();
   const remoteTile = document.getElementById('remote-tile');
   if(remoteTile) remoteTile.classList.add('speaking');
-
-  // Afficher la vidéo si on reçoit du video
   if(kind === 'video'){
     rv.style.display = 'block';
     if(ra) ra.style.display = 'none';
@@ -1016,7 +1093,6 @@ function setCallStatus(msg){
   if(el) el.textContent = msg;
 }
 
-// ---- Lancer un appel ----
 async function startCall(userId, callType){
   if(S.inCall){
     showToast('Déjà en appel','Termine l\'appel en cours avant d\'en commencer un nouveau.','#ef4444','!');
@@ -1025,7 +1101,6 @@ async function startCall(userId, callType){
   const fu = S.users[userId];
   if(!fu){ showToast('Erreur','Utilisateur introuvable.','#ef4444','!'); return; }
 
-  // Vérifier permission micro avant de commencer
   try {
     const testStream = await navigator.mediaDevices.getUserMedia({ audio:true, video:false });
     testStream.getTracks().forEach(t=>t.stop());
@@ -1044,7 +1119,6 @@ async function startCall(userId, callType){
 
 async function startVideoCall(userId){ await startCall(userId, 'video'); }
 
-// ---- Salon vocal (pas de peer-to-peer, juste micro local) ----
 function joinVoiceChannel(chId){
   const ch = S.channels[chId]; if(!ch) return;
   if(S.inCall){ showToast('Déjà en appel','Quitte l\'appel en cours d\'abord.','#ef4444','!'); return; }
@@ -1060,14 +1134,16 @@ function joinVoiceChannel(chId){
 
   const micBtn = document.getElementById('call-mic-btn');
   if(micBtn){ micBtn.classList.remove('off'); micBtn.textContent='🎤'; }
-  const scrBtn = document.getElementById('call-screen-btn');
-  if(scrBtn){ scrBtn.classList.remove('off'); scrBtn.textContent='🖥️'; }
 
   const me = S.users[S.me];
+  const localAvatarHtml = me && me.avatarImg
+    ? `<img src="${me.avatarImg}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`
+    : initials(me?me.username:'');
+
   const vids = document.getElementById('call-videos');
   vids.className = 'call-videos grid-1';
   vids.innerHTML = `<div class="call-video-tile speaking" id="local-tile">
-    <div class="tile-avatar" id="local-avatar" style="background:${me?me.color||avatarColor(me.username):'var(--grad)'}">${initials(me?me.username:'')}</div>
+    <div class="tile-avatar" id="local-avatar" style="background:${me?me.color||avatarColor(me.username):'var(--grad)'}">${localAvatarHtml}</div>
     <video id="local-video" autoplay muted playsinline style="display:none;"></video>
     <div class="tile-name">${me?me.username:'Moi'} (moi)</div>
   </div>`;
@@ -1082,7 +1158,6 @@ function joinVoiceChannel(chId){
     try { WR.silenceTrack = createSilenceTrack(); } catch(e){}
     setCallStatus('Micro actif dans le salon ✓');
   }).catch(e => {
-    console.error('Erreur micro salon:', e);
     if(e.name==='NotAllowedError') showToast('Permission refusée','Autorise le micro dans ton navigateur.','#ef4444','🎤');
     else showToast('Micro indisponible','Aucun micro détecté.','#ef4444','!');
     setCallStatus('Micro indisponible');
@@ -1094,31 +1169,18 @@ function joinVoiceChannel(chId){
   }, 1000);
 }
 
-// ---- Fin d'appel ----
 function endCall(){
-  // Stopper tous les streams
-  if(WR.localStream){
-    WR.localStream.getTracks().forEach(t => t.stop());
-    WR.localStream = null;
-  }
-  if(WR.screenStream){
-    WR.screenStream.getTracks().forEach(t => t.stop());
-    WR.screenStream = null;
-  }
-  // Stopper les tracks synthétiques
+  stopRingTone();
+  if(WR.localStream){ WR.localStream.getTracks().forEach(t => t.stop()); WR.localStream = null; }
+  if(WR.screenStream){ WR.screenStream.getTracks().forEach(t => t.stop()); WR.screenStream = null; }
   if(WR.silenceTrack){ WR.silenceTrack.stop(); WR.silenceTrack = null; }
   if(WR.blackTrack){ WR.blackTrack.stop(); WR.blackTrack = null; }
-
-  // Fermer le peer connection
   if(WR.pc){ WR.pc.close(); WR.pc = null; }
-
-  // Nettoyage signaling Firebase
   if(WR.signalingUnsub){ WR.signalingUnsub(); WR.signalingUnsub = null; }
   if(WR.iceUnsub){ WR.iceUnsub(); WR.iceUnsub = null; }
 
   if(WR.callId && WR.remoteUserId){
-    const rid = WR.remoteUserId;
-    const cid = WR.callId;
+    const rid = WR.remoteUserId; const cid = WR.callId;
     dbRemove('calls/'+rid+'/incoming').catch(()=>{});
     dbRemove('calls/'+S.me+'/answer/'+cid).catch(()=>{});
     dbRemove('calls/'+S.me+'/iceCandidatesFromCaller').catch(()=>{});
@@ -1127,16 +1189,13 @@ function endCall(){
     dbRemove('calls/'+rid+'/iceCandidatesFromCallee').catch(()=>{});
   }
 
-  // Reset état WR
   WR.callId = null; WR.remoteUserId = null; WR.isCaller = false;
   WR.micMuted = false; WR.camOff = true; WR.screenSharing = false;
   WR.iceCandidatesReceived.clear();
 
-  // Reset état S
   clearInterval(S.callTimer); S.callTimer = null;
   S.inCall = false; S.callSec = 0;
 
-  // Reset UI
   document.getElementById('call-ui').classList.add('hidden');
   document.getElementById('call-timer').textContent = '00:00';
   const micBtn = document.getElementById('call-mic-btn');
@@ -1149,100 +1208,62 @@ function endCall(){
 }
 
 // ==================== CONTRÔLES APPEL ====================
-
-/**
- * CORRECTION MUTE :
- * Au lieu de juste track.enabled = false (qui ne coupe pas le flux WebRTC),
- * on remplace le track audio dans le sender par un track silencieux.
- * L'autre utilisateur reçoit du silence propre.
- */
 async function toggleCallMic(btn){
   if(!WR.localStream) return;
-
   WR.micMuted = !WR.micMuted;
-
   const audioTracks = WR.localStream.getAudioTracks();
   if(audioTracks.length === 0) return;
   const realAudioTrack = audioTracks[0];
 
   if(WR.micMuted){
-    // Muter : remplacer par silence dans le PC
-    if(WR.silenceTrack){
-      await replaceTrackInPC(WR.silenceTrack, 'audio');
-    } else {
-      // Fallback si AudioContext indisponible : juste disable le track
-      realAudioTrack.enabled = false;
-    }
+    if(WR.silenceTrack){ await replaceTrackInPC(WR.silenceTrack, 'audio'); }
+    else { realAudioTrack.enabled = false; }
     btn.classList.add('off'); btn.textContent = '🔇';
-    // Afficher badge mute sur tuile locale
     const tile = document.getElementById('local-tile');
     if(tile && !tile.querySelector('.mute-badge')){
       const badge = document.createElement('div');
-      badge.className = 'mute-badge';
-      badge.textContent = '🔇 Muet';
+      badge.className = 'mute-badge'; badge.textContent = '🔇 Muet';
       tile.appendChild(badge);
     }
   } else {
-    // Démuter : remettre le vrai track audio
     realAudioTrack.enabled = true;
     await replaceTrackInPC(realAudioTrack, 'audio');
     btn.classList.remove('off'); btn.textContent = '🎤';
-    // Enlever badge mute
     const badge = document.querySelector('#local-tile .mute-badge');
     if(badge) badge.remove();
   }
 }
 
-/**
- * CORRECTION CAMÉRA :
- * On utilise replaceTrack pour envoyer un track noir quand la caméra est off,
- * puis le vrai track vidéo quand elle est allumée.
- */
 async function toggleCallCam(btn){
   if(!WR.localStream) return;
-
   WR.camOff = !WR.camOff;
 
   if(WR.camOff){
-    // Éteindre : envoyer un black track au lieu de null
-    if(!WR.blackTrack || WR.blackTrack.readyState === 'ended'){
-      WR.blackTrack = createBlackTrack();
-    }
+    if(!WR.blackTrack || WR.blackTrack.readyState === 'ended') WR.blackTrack = createBlackTrack();
     await replaceTrackInPC(WR.blackTrack, 'video');
     btn.classList.add('off'); btn.textContent = '📵';
-
-    // Masquer le stream local
     const lv = document.getElementById('local-video');
     const la = document.getElementById('local-avatar');
     if(lv) lv.style.display = 'none';
     if(la) la.style.display = 'flex';
   } else {
-    // Allumer la caméra
     let videoTrack = WR.localStream.getVideoTracks()[0];
-
     if(!videoTrack || videoTrack.readyState === 'ended'){
-      // Pas de track vidéo encore : en demander un nouveau
       try {
         const camStream = await navigator.mediaDevices.getUserMedia({
-          video: { width:{ideal:1280}, height:{ideal:720}, facingMode:'user' },
-          audio: false
+          video: { width:{ideal:1280}, height:{ideal:720}, facingMode:'user' }, audio: false
         });
         videoTrack = camStream.getVideoTracks()[0];
         WR.localStream.addTrack(videoTrack);
       } catch(e){
-        console.error('Caméra indisponible:', e);
         WR.camOff = true;
         showToast('Caméra indisponible','Vérifie les permissions caméra.','#ef4444','📵');
         return;
       }
-    } else {
-      videoTrack.enabled = true;
-    }
+    } else { videoTrack.enabled = true; }
 
     await replaceTrackInPC(videoTrack, 'video');
     btn.classList.remove('off'); btn.textContent = '📷';
-
-    // Afficher la vidéo locale
     const lv = document.getElementById('local-video');
     const la = document.getElementById('local-avatar');
     if(lv){ lv.srcObject = WR.localStream; lv.style.display = 'block'; }
@@ -1250,23 +1271,11 @@ async function toggleCallCam(btn){
   }
 }
 
-/**
- * CORRECTION PARTAGE D'ÉCRAN :
- * On ajoute le track vidéo de l'écran via replaceTrack dans le sender vidéo.
- * Si aucun sender vidéo n'existe (appel vocal), on en crée un via renegociation.
- * À l'arrêt du partage, on remet le track vidéo d'origine (ou le black track).
- */
 async function toggleScreenShare(btn){
   if(WR.screenSharing){
-    // Arrêter le partage d'écran
-    if(WR.screenStream){
-      WR.screenStream.getTracks().forEach(t => t.stop());
-      WR.screenStream = null;
-    }
+    if(WR.screenStream){ WR.screenStream.getTracks().forEach(t => t.stop()); WR.screenStream = null; }
     WR.screenSharing = false;
     btn.classList.remove('off'); btn.textContent = '🖥️';
-
-    // Remettre la caméra ou le black track
     if(WR.callType === 'video' && !WR.camOff){
       const videoTrack = WR.localStream ? WR.localStream.getVideoTracks()[0] : null;
       if(videoTrack && videoTrack.readyState !== 'ended'){
@@ -1275,11 +1284,8 @@ async function toggleScreenShare(btn){
         if(lv){ lv.srcObject = WR.localStream; }
       }
     } else {
-      if(!WR.blackTrack || WR.blackTrack.readyState === 'ended'){
-        WR.blackTrack = createBlackTrack();
-      }
+      if(!WR.blackTrack || WR.blackTrack.readyState === 'ended') WR.blackTrack = createBlackTrack();
       await replaceTrackInPC(WR.blackTrack, 'video');
-      // Masquer vidéo locale
       const lv = document.getElementById('local-video');
       const la = document.getElementById('local-avatar');
       if(lv) lv.style.display = 'none';
@@ -1289,44 +1295,24 @@ async function toggleScreenShare(btn){
     return;
   }
 
-  // Démarrer le partage d'écran
   try {
-    WR.screenStream = await navigator.mediaDevices.getDisplayMedia({
-      video: { cursor: 'always' },
-      audio: false
-    });
+    WR.screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: 'always' }, audio: false });
     WR.screenSharing = true;
     btn.classList.add('off'); btn.textContent = '⏹️';
-
     const screenTrack = WR.screenStream.getVideoTracks()[0];
+    screenTrack.onended = () => { if(WR.screenSharing) toggleScreenShare(btn); };
 
-    // Quand l'utilisateur arrête depuis le navigateur
-    screenTrack.onended = () => {
-      if(WR.screenSharing) toggleScreenShare(btn);
-    };
-
-    // Vérifier si un sender vidéo existe dans le PC
     const videoSender = WR.pc ? WR.pc.getSenders().find(s => s.track && s.track.kind === 'video') : null;
-
-    if(videoSender){
-      // Remplacer le track vidéo existant
-      await videoSender.replaceTrack(screenTrack);
-    } else if(WR.pc && WR.localStream){
-      // Pas de sender vidéo (appel vocal) : ajouter le track
-      // Cela nécessite une renegociation
+    if(videoSender){ await videoSender.replaceTrack(screenTrack); }
+    else if(WR.pc && WR.localStream){
       WR.pc.addTrack(screenTrack, WR.screenStream);
-      // Renegocier
       try {
         const offer = await WR.pc.createOffer();
         await WR.pc.setLocalDescription(offer);
-        const cid = uid();
-        await dbSet('calls/'+WR.remoteUserId+'/renegotiate', {
-          from: S.me, offer: JSON.stringify(offer), id: cid
-        });
-      } catch(e){ console.warn('Renegociation screen share:', e); }
+        await dbSet('calls/'+WR.remoteUserId+'/renegotiate', { from: S.me, offer: JSON.stringify(offer), id: uid() });
+      } catch(e){ console.warn('Renegociation:', e); }
     }
 
-    // Afficher le stream d'écran localement
     const lv = document.getElementById('local-video');
     const la = document.getElementById('local-avatar');
     if(lv){ lv.srcObject = WR.screenStream; lv.style.display = 'block'; }
@@ -1334,16 +1320,12 @@ async function toggleScreenShare(btn){
     setCallStatus('Partage d\'écran actif 🖥️');
 
   } catch(e){
-    console.error('Screen share error:', e);
     WR.screenSharing = false;
-    if(e.name !== 'NotAllowedError'){
-      showToast('Erreur','Impossible de partager l\'écran.','#ef4444','!');
-    }
+    if(e.name !== 'NotAllowedError') showToast('Erreur','Impossible de partager l\'écran.','#ef4444','!');
     setCallStatus('Partage d\'écran annulé');
   }
 }
 
-// Boutons micro/casque dans la barre inférieure (pas dans un appel actif)
 function toggleMic(btn){
   S.micOn = !S.micOn;
   btn.style.opacity = S.micOn ? 1 : .4;
@@ -1355,14 +1337,59 @@ function toggleDeaf(btn){
   btn.textContent = S.deafOn ? '🔕' : '🎧';
 }
 
+// ==================== AVATAR UPLOAD ====================
+function triggerAvatarUpload(callback){
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if(!file) return;
+    // Max 2MB check
+    if(file.size > 2 * 1024 * 1024){
+      showToast('Image trop lourde','Max 2 Mo autorisé.','#ef4444','!');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = ev => callback(ev.target.result);
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+async function uploadMyAvatar(){
+  triggerAvatarUpload(async dataUrl => {
+    await dbUpdate('users/'+S.me, { avatarImg: dataUrl });
+    S.users[S.me].avatarImg = dataUrl;
+    renderUserBar();
+    // Refresh profile modal if open
+    const modal = document.querySelector('.modal-overlay');
+    if(modal) openModal('my-profile');
+    showToast('Photo mise à jour','Ta photo de profil a été changée ! 🎉','var(--green)','✓');
+  });
+}
+
+async function removeMyAvatar(){
+  await dbUpdate('users/'+S.me, { avatarImg: null });
+  S.users[S.me].avatarImg = null;
+  renderUserBar();
+  const modal = document.querySelector('.modal-overlay');
+  if(modal) openModal('my-profile');
+  showToast('Photo supprimée','Tu utilises de nouveau ton avatar coloré.','var(--text2)','✓');
+}
+
 // ==================== RENDER APP ====================
 function renderApp(){ renderServersBar(); renderUserBar(); }
 
 function renderUserBar(){
   const u=S.users[S.me]; if(!u)return;
   const el=document.getElementById('ub-avatar-el');
-  el.style.background=u.color||avatarColor(u.username);
-  el.innerHTML=`<span>${initials(u.username)}</span><div class="status-dot ${u.status||'online'}"></div>`;
+  if(u.avatarImg){
+    el.innerHTML=`<img src="${u.avatarImg}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt=""/><div class="status-dot ${u.status||'online'}" style="position:absolute;bottom:-1px;right:-1px;z-index:1;"></div>`;
+    el.style.background='transparent';
+  } else {
+    el.style.background=u.color||avatarColor(u.username);
+    el.innerHTML=`<span>${initials(u.username)}</span><div class="status-dot ${u.status||'online'}"></div>`;
+  }
   document.getElementById('ub-name-el').textContent=u.username;
   const st=u.status||'online';
   document.getElementById('ub-status-el').textContent=STATUS_LABELS[st]||'🟢 En ligne';
@@ -1459,8 +1486,12 @@ function renderLeftPanel(type, serverId){
       const msgs=S.dms[dmKey]?Object.values(S.dms[dmKey]).sort((a,b)=>a.ts-b.ts):[];
       const last=msgs[msgs.length-1];
       const unread=S.dmUnread[fid]||0;
+      const avHtml = fu.avatarImg
+        ? `<img src="${fu.avatarImg}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt=""/>`
+        : initials(fu.username);
+      const avBg = fu.avatarImg ? 'transparent' : fu.color||avatarColor(fu.username);
       html+=`<div class="dm-item${S.activeDm===fid?' active':''}" onclick="openDm('${fid}')" oncontextmenu="userCtxMenu(event,'${fid}')">
-        <div class="dm-avatar" style="background:${fu.color||avatarColor(fu.username)}">${initials(fu.username)}<div class="status-dot ${fu.status||'online'}" style="border-color:var(--bg2)"></div></div>
+        <div class="dm-avatar" style="background:${avBg}">${avHtml}<div class="status-dot ${fu.status||'online'}" style="border-color:var(--bg2)"></div></div>
         <div class="dm-info">
           <div class="dm-name">${fu.username}</div>
           <div class="dm-preview">${last?escHtml(last.content.slice(0,30)):'Commencer une discussion'}</div>
@@ -1535,7 +1566,9 @@ function filterFriends(filter, btn){
       html+=`<div style="padding:10px 16px 4px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;">REÇUES — ${myPendingIn.length}</div>`;
       myPendingIn.forEach(fid=>{
         const fu=S.users[fid]; if(!fu)return;
-        html+=`<div class="friend-item"><div class="friend-avatar" style="background:${fu.color||avatarColor(fu.username)}">${initials(fu.username)}</div>
+        const avHtml = fu.avatarImg ? `<img src="${fu.avatarImg}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>` : initials(fu.username);
+        const avBg = fu.avatarImg ? 'transparent' : fu.color||avatarColor(fu.username);
+        html+=`<div class="friend-item"><div class="friend-avatar" style="background:${avBg}">${avHtml}</div>
           <div class="friend-info"><div class="friend-name">${fu.username}</div><div class="friend-status">Demande en attente</div></div>
           <div class="friend-actions">
             <div class="friend-btn" title="Accepter" onclick="acceptFriend('${fid}')" style="background:rgba(34,197,94,.2);color:var(--green)">✓</div>
@@ -1547,7 +1580,9 @@ function filterFriends(filter, btn){
       html+=`<div style="padding:10px 16px 4px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;">ENVOYÉES — ${myPendingOut.length}</div>`;
       myPendingOut.forEach(fid=>{
         const fu=S.users[fid]; if(!fu)return;
-        html+=`<div class="friend-item"><div class="friend-avatar" style="background:${fu.color||avatarColor(fu.username)}">${initials(fu.username)}</div>
+        const avHtml = fu.avatarImg ? `<img src="${fu.avatarImg}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>` : initials(fu.username);
+        const avBg = fu.avatarImg ? 'transparent' : fu.color||avatarColor(fu.username);
+        html+=`<div class="friend-item"><div class="friend-avatar" style="background:${avBg}">${avHtml}</div>
           <div class="friend-info"><div class="friend-name">${fu.username}</div><div class="friend-status">En attente</div></div>
           <div class="friend-actions"><div class="friend-btn" onclick="cancelFriendRequest('${fid}')" style="background:rgba(239,68,68,.2);color:var(--red)">✗</div></div></div>`;
       });
@@ -1563,8 +1598,10 @@ function filterFriends(filter, btn){
       list.forEach(fid=>{
         const fu=S.users[fid]; if(!fu)return;
         const st=fu.status||'online';
+        const avHtml = fu.avatarImg ? `<img src="${fu.avatarImg}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>` : initials(fu.username);
+        const avBg = fu.avatarImg ? 'transparent' : fu.color||avatarColor(fu.username);
         html+=`<div class="friend-item" oncontextmenu="userCtxMenu(event,'${fid}')">
-          <div class="friend-avatar" style="background:${fu.color||avatarColor(fu.username)}">${initials(fu.username)}<div class="status-dot ${st}"></div></div>
+          <div class="friend-avatar" style="background:${avBg}">${avHtml}<div class="status-dot ${st}"></div></div>
           <div class="friend-info"><div class="friend-name">${fu.username}</div><div class="friend-status">${STATUS_LABELS[st]}</div></div>
           <div class="friend-actions">
             <div class="friend-btn" title="Message" onclick="openDm('${fid}')">💬</div>
@@ -1599,7 +1636,8 @@ async function sendFriendRequest(){
   msg.style.color='#22c55e';
   msg.textContent='✓ Demande envoyée à '+allUsers[found].username+' !';
   input.value='';
-  showToast('Demande envoyée','Demande envoyée à '+allUsers[found].username,avatarColor(allUsers[found].username),initials(allUsers[found].username));
+  const fu=allUsers[found];
+  showToast('Demande envoyée','Demande envoyée à '+fu.username,fu.color||avatarColor(fu.username),initials(fu.username),fu.avatarImg);
 }
 
 async function acceptFriend(fid){
@@ -1609,7 +1647,7 @@ async function acceptFriend(fid){
   await dbRemove('pendingOut/'+fid+'/'+S.me);
   S.friends[S.me]=S.friends[S.me]||{}; S.friends[S.me][fid]=true;
   const fu=S.users[fid];
-  if(fu) showToast('Nouvel ami !',fu.username+' est maintenant ton ami !',fu.color||avatarColor(fu.username),initials(fu.username));
+  if(fu) showToast('Nouvel ami !',fu.username+' est maintenant ton ami !',fu.color||avatarColor(fu.username),initials(fu.username),fu.avatarImg);
   renderFriendsView(); renderLeftPanel('dm');
 }
 
@@ -1642,7 +1680,8 @@ async function quickAddFriend(userId){
   await dbUpdate('pendingOut/'+S.me,{[userId]:true});
   await dbUpdate('pendingIn/'+userId,{[S.me]:true});
   S.pendingOut[S.me]=S.pendingOut[S.me]||{}; S.pendingOut[S.me][userId]=true;
-  showToast('Demande envoyée','Envoyée à '+S.users[userId].username,avatarColor(S.users[userId].username),initials(S.users[userId].username));
+  const fu=S.users[userId];
+  showToast('Demande envoyée','Envoyée à '+fu.username,fu.color||avatarColor(fu.username),initials(fu.username),fu.avatarImg);
   closeCtxMenu(); renderRightPanel();
 }
 
@@ -1681,11 +1720,17 @@ function renderDm(userId){
   const rawMsgs=S.dms[dmKey]||{};
   const msgs=Object.values(rawMsgs).sort((a,b)=>a.ts-b.ts);
   const mc=document.getElementById('main-content');
+
+  const avBg = fu.avatarImg ? 'transparent' : fu.color||avatarColor(fu.username);
+  const avContent = fu.avatarImg
+    ? `<img src="${fu.avatarImg}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt=""/>`
+    : initials(fu.username);
+
   mc.innerHTML=`
   <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
     <div class="mc-header">
-      <div style="width:32px;height:32px;border-radius:50%;background:${fu.color||avatarColor(fu.username)};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;position:relative;flex-shrink:0;">
-        ${initials(fu.username)}<div class="status-dot ${fu.status||'online'}" style="border-color:var(--bg2)"></div>
+      <div style="width:32px;height:32px;border-radius:50%;background:${avBg};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;position:relative;flex-shrink:0;overflow:hidden;">
+        ${avContent}<div class="status-dot ${fu.status||'online'}" style="border-color:var(--bg2)"></div>
       </div>
       <span class="ch-name">${fu.username}</span>
       <span class="ch-desc">${STATUS_LABELS[fu.status||'online']}</span>
@@ -1697,7 +1742,7 @@ function renderDm(userId){
     </div>
     <div class="messages-area" id="msgs-area-dm_${userId}">
       <div style="padding:32px 16px 8px;">
-        <div style="width:56px;height:56px;border-radius:50%;background:${fu.color||avatarColor(fu.username)};display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;margin-bottom:12px;">${initials(fu.username)}</div>
+        <div style="width:56px;height:56px;border-radius:50%;background:${avBg};display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;margin-bottom:12px;overflow:hidden;">${avContent}</div>
         <div style="font-size:24px;font-weight:800;">${fu.username}</div>
         <div style="font-size:14px;color:var(--text2);margin-bottom:12px;">C'est le début de ton aventure avec <strong>${fu.username}</strong> !</div>
       </div>
@@ -1723,8 +1768,12 @@ function buildMsgHtml(msgs, type, contextId){
     const u=msg.authorId?S.users[msg.authorId]:null;
     const aColor=u?u.color||avatarColor(u.username):msg.avatar||avatarColor(msg.author||'');
     if(!isContinue){
+      const avBg = u && u.avatarImg ? 'transparent' : aColor;
+      const avContent = u && u.avatarImg
+        ? `<img src="${u.avatarImg}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt=""/>`
+        : initials(msg.author);
       html+=`<div class="msg-group" oncontextmenu="msgCtxMenu(event,'${msg.id}','${type}','${contextId}')">
-        <div class="msg-avatar" style="background:${aColor}">${initials(msg.author)}</div>
+        <div class="msg-avatar" style="background:${avBg}">${avContent}</div>
         <div class="msg-content">
           <div class="msg-header">
             <span class="msg-author" style="${u&&u.nameColor?`background:${u.nameColor};-webkit-background-clip:text;-webkit-text-fill-color:transparent`:''}">${escHtml(msg.author)}</span>
@@ -1773,11 +1822,7 @@ async function deleteMsg(msgId, type, contextId){
 let _channelListener=null;
 let _channelListenerId=null;
 function listenChannel(chId){
-  if(_channelListener && _channelListenerId){
-    off(_channelListener);
-    _channelListener=null;
-    _channelListenerId=null;
-  }
+  if(_channelListener && _channelListenerId){ off(_channelListener); _channelListener=null; _channelListenerId=null; }
   _channelListenerId=chId;
   _channelListener=dbRef('messages/'+chId);
   onValue(_channelListener, snap=>{
@@ -1811,8 +1856,10 @@ function renderRightPanel(){
     online.forEach(id=>{
       const u=S.users[id]; if(!u)return;
       const isMe=id===S.me; const isFriend=myFriends[id]; const isPendingOut=myPendingOut[id];
+      const avBg = u.avatarImg ? 'transparent' : u.color||avatarColor(u.username);
+      const avContent = u.avatarImg ? `<img src="${u.avatarImg}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt=""/>` : initials(u.username);
       html+=`<div class="member-item" onclick="openModal('view-profile','${id}')" oncontextmenu="userCtxMenu(event,'${id}')">
-        <div class="member-avatar" style="background:${u.color||avatarColor(u.username)}">${initials(u.username)}<div class="status-dot ${u.status||'online'}"></div></div>
+        <div class="member-avatar" style="background:${avBg}">${avContent}<div class="status-dot ${u.status||'online'}"></div></div>
         <div class="member-info"><div class="member-name">${u.username}${isMe?' (moi)':''}</div><div class="member-status">${STATUS_LABELS[u.status||'online']}</div></div>
         ${!isMe&&!isFriend&&!isPendingOut?`<div title="Ajouter" onclick="event.stopPropagation();quickAddFriend('${id}')" style="flex-shrink:0;width:24px;height:24px;border-radius:50%;background:rgba(124,92,252,.2);color:var(--accent1);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;cursor:pointer;">+</div>`:''}
         ${!isMe&&isFriend?`<div onclick="event.stopPropagation();openDm('${id}')" style="flex-shrink:0;width:24px;height:24px;border-radius:50%;background:rgba(34,197,94,.15);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;">💬</div>`:''}
@@ -1824,8 +1871,10 @@ function renderRightPanel(){
     html+=`<div class="rp-section"><div class="rp-title">HORS LIGNE — ${offline.length}</div>`;
     offline.forEach(id=>{
       const u=S.users[id]; if(!u)return;
+      const avBg = u.avatarImg ? 'transparent' : u.color||avatarColor(u.username);
+      const avContent = u.avatarImg ? `<img src="${u.avatarImg}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt=""/>` : initials(u.username);
       html+=`<div class="member-item" style="opacity:.5" onclick="openModal('view-profile','${id}')">
-        <div class="member-avatar" style="background:${u.color||avatarColor(u.username)}">${initials(u.username)}<div class="status-dot offline"></div></div>
+        <div class="member-avatar" style="background:${avBg}">${avContent}<div class="status-dot offline"></div></div>
         <div class="member-info"><div class="member-name">${u.username}</div><div class="member-status">Hors ligne</div></div>
       </div>`;
     });
@@ -1945,6 +1994,12 @@ function openModal(type, data){
     const u=S.users[uid2]; if(!u){closeAllModals();return;}
     const isMe=uid2===S.me;
     const isFriend=S.friends[S.me]&&S.friends[S.me][uid2];
+
+    const avBg = u.avatarImg ? 'transparent' : u.color||avatarColor(u.username);
+    const avContent = u.avatarImg
+      ? `<img src="${u.avatarImg}" style="width:80px;height:80px;object-fit:cover;border-radius:50%;display:block;" alt=""/>`
+      : `<span style="font-size:28px;font-weight:700;color:#fff;">${initials(u.username)}</span>`;
+
     html=`<div class="modal-overlay" onclick="if(event.target===this)closeAllModals()"><div class="modal" style="padding:0;overflow:hidden;width:380px;">
       <div class="profile-banner" style="background:${u.banner||'var(--grad)'};">
         ${isMe?'<div class="change-banner" onclick="changeBanner()">Changer la bannière</div>':''}
@@ -1952,13 +2007,17 @@ function openModal(type, data){
       </div>
       <div style="padding:0 16px 16px;">
         <div style="display:flex;align-items:flex-end;justify-content:space-between;">
-          <div style="position:relative;width:80px;height:80px;margin-top:-40px;margin-bottom:8px;">
-            <div style="width:80px;height:80px;border-radius:50%;border:5px solid var(--bg2);background:${u.color||avatarColor(u.username)};display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;${isMe?'cursor:pointer':''}" ${isMe?'onclick="changeAvatar()"':''}>${initials(u.username)}</div>
-            <div class="status-dot ${u.status||'online'}" style="width:14px;height:14px;border-width:3px;border-color:var(--bg2);position:absolute;bottom:4px;right:4px;"></div>
+          <div class="avatar-upload-zone" ${isMe?'onclick="uploadMyAvatar()"':''} style="${isMe?'cursor:pointer':'cursor:default'}">
+            <div class="avatar-circle" style="background:${avBg};border:5px solid var(--bg2);">
+              ${avContent}
+            </div>
+            ${isMe?`<div class="avatar-overlay"><span>📷</span><small>Changer</small></div>`:''}
+            <div class="status-dot ${u.status||'online'}" style="position:absolute;bottom:8px;right:8px;width:14px;height:14px;border-width:3px;border-color:var(--bg2);"></div>
           </div>
           ${!isMe&&!isFriend?`<button class="btn btn-primary" style="margin-top:8px;padding:8px 16px;font-size:13px;" onclick="quickAddFriend('${uid2}');closeAllModals()">Ajouter</button>`:''}
           ${!isMe&&isFriend?`<div style="display:flex;gap:6px;margin-top:8px;"><button class="btn btn-primary" style="padding:8px 12px;font-size:13px;" onclick="openDm('${uid2}');closeAllModals()">Message</button><button class="btn btn-ghost" style="padding:8px 12px;font-size:13px;" onclick="startCall('${uid2}','voice');closeAllModals()">📞</button><button class="btn btn-ghost" style="padding:8px 12px;font-size:13px;" onclick="startCall('${uid2}','video');closeAllModals()">📹</button></div>`:''}
         </div>
+        ${isMe&&u.avatarImg?`<button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;margin-bottom:8px;" onclick="removeMyAvatar()">🗑️ Supprimer la photo</button>`:''}
         <div class="profile-name-row">
           <span class="profile-name" style="${u.nameColor?`background:${u.nameColor};-webkit-background-clip:text;-webkit-text-fill-color:transparent`:''}">${escHtml(u.username)}</span>
           ${u.nitro?'<span class="nitro-badge">NITRO</span>':''}
@@ -2024,8 +2083,27 @@ function openModal(type, data){
 }
 
 function renderSettingsProfile(u){
+  const avBg = u.avatarImg ? 'transparent' : u.color||avatarColor(u.username);
+  const avContent = u.avatarImg
+    ? `<img src="${u.avatarImg}" style="width:64px;height:64px;object-fit:cover;border-radius:50%;display:block;" alt=""/>`
+    : `<span style="font-size:22px;font-weight:700;color:#fff;">${initials(u.username)}</span>`;
+
   return`<div class="settings-section">
     <h3>Profil public</h3>
+    <div class="avatar-upload-settings">
+      <div class="avatar-preview-settings" style="background:${avBg};" onclick="uploadMyAvatar()">
+        ${avContent}
+        <div class="avatar-hover-overlay">📷</div>
+      </div>
+      <div>
+        <div style="font-size:14px;font-weight:700;margin-bottom:4px;">${escHtml(u.username)}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="btn btn-ghost" style="padding:5px 10px;font-size:12px;" onclick="uploadMyAvatar()">📷 Changer la photo</button>
+          ${u.avatarImg?`<button class="btn btn-ghost" style="padding:5px 10px;font-size:12px;color:var(--red);" onclick="removeMyAvatar()">🗑️ Supprimer</button>`:''}
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px;">JPG, PNG ou GIF · Max 2 Mo</div>
+      </div>
+    </div>
     <div class="field"><label>Nom d'utilisateur</label><input type="text" id="set-username" value="${escHtml(u.username)}"/></div>
     <div class="field"><label>Bio</label><textarea id="set-bio" placeholder="Parle de toi...">${escHtml(u.bio||'')}</textarea></div>
     <div class="field"><label>Statut</label>
@@ -2067,9 +2145,45 @@ function showSettingsSection(section,btn){
           </div>`).join('')}
       </div></div>`;
   } else if(section==='notifications'){
-    content.innerHTML=`<div class="settings-section"><h3>Notifications</h3>
-      <div class="toggle-row"><div class="toggle-info"><div class="toggle-label">Messages directs</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
-      <div class="toggle-row"><div class="toggle-info"><div class="toggle-label">Demandes d'amis</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+    content.innerHTML=`<div class="settings-section">
+      <h3>Sonnerie d'appel</h3>
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <div class="toggle-label">Sonnerie activée</div>
+          <div class="toggle-desc">Joue une sonnerie lors des appels entrants</div>
+        </div>
+        <div class="toggle${S.ringtoneEnabled?' on':''}" id="ringtone-toggle" onclick="toggleRingtone(this)"></div>
+      </div>
+      <div style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,.04);">
+        <div style="font-size:14px;font-weight:600;margin-bottom:10px;">Volume de la sonnerie</div>
+        <div class="volume-slider-row">
+          <span class="vol-icon">${S.ringtoneVolume===0?'🔇':S.ringtoneVolume<50?'🔉':'🔊'}</span>
+          <input type="range" min="0" max="100" value="${S.ringtoneVolume}" id="ringtone-vol-slider"
+            oninput="updateRingtoneVolume(this.value)"
+            onchange="updateRingtoneVolume(this.value)"/>
+          <span class="vol-val" id="vol-val-display">${S.ringtoneVolume}%</span>
+        </div>
+        <button class="btn btn-ghost" style="font-size:12px;padding:6px 14px;margin-top:8px;" onclick="previewRingtone()">▶ Tester la sonnerie</button>
+      </div>
+      <h3 style="margin-top:20px;">Notifications push</h3>
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <div class="toggle-label">Notifications système</div>
+          <div class="toggle-desc">Reçois des alertes même quand l'app est en arrière-plan</div>
+        </div>
+        <div class="toggle${('Notification' in window && Notification.permission==='granted')?' on':''}" id="notif-toggle" onclick="toggleBrowserNotif(this)"></div>
+      </div>
+      <div id="notif-status" style="font-size:12px;color:var(--text2);margin-top:4px;padding-left:0;">
+        ${'Notification' in window ? (Notification.permission==='granted'?'✅ Notifications autorisées':Notification.permission==='denied'?'❌ Bloquées dans le navigateur (à débloquer dans les paramètres du site)':'⏳ Permission non encore accordée') : '❌ Non supporté par ce navigateur'}
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info"><div class="toggle-label">Messages directs</div></div>
+        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info"><div class="toggle-label">Demandes d'amis</div></div>
+        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
     </div>`;
   } else if(section==='audio'){
     content.innerHTML=`<div class="settings-section"><h3>Audio & Vidéo</h3>
@@ -2086,6 +2200,56 @@ function showSettingsSection(section,btn){
       </div>
     </div>`;
   }
+}
+
+// ==================== RINGTONE SETTINGS ====================
+function toggleRingtone(el){
+  S.ringtoneEnabled = !S.ringtoneEnabled;
+  el.classList.toggle('on', S.ringtoneEnabled);
+  saveSettings();
+  if(!S.ringtoneEnabled) stopRingTone();
+}
+
+function updateRingtoneVolume(val){
+  S.ringtoneVolume = parseInt(val);
+  saveSettings();
+  const display = document.getElementById('vol-val-display');
+  if(display) display.textContent = val + '%';
+  // Update icon
+  const slider = document.getElementById('ringtone-vol-slider');
+  if(slider){
+    const row = slider.closest('.volume-slider-row');
+    if(row){
+      const icon = row.querySelector('.vol-icon');
+      if(icon) icon.textContent = val==0?'🔇':val<50?'🔉':'🔊';
+    }
+  }
+}
+
+function previewRingtone(){
+  playRingTone();
+  setTimeout(stopRingTone, 3500);
+}
+
+async function toggleBrowserNotif(el){
+  if(!('Notification' in window)){
+    showToast('Non supporté','Ton navigateur ne supporte pas les notifications.','#ef4444','!');
+    return;
+  }
+  if(Notification.permission === 'granted'){
+    // can't revoke, show instructions
+    showToast('Pour désactiver','Va dans les paramètres du site (🔒) et bloque les notifications.','#f97316','ℹ️');
+    return;
+  }
+  const perm = await Notification.requestPermission();
+  el.classList.toggle('on', perm === 'granted');
+  const statusEl = document.getElementById('notif-status');
+  if(statusEl){
+    if(perm === 'granted') statusEl.textContent = '✅ Notifications autorisées';
+    else if(perm === 'denied') statusEl.textContent = '❌ Bloquées dans le navigateur';
+    else statusEl.textContent = '⏳ Permission non encore accordée';
+  }
+  if(perm === 'granted') showToast('Notifications activées','Tu recevras des alertes même en arrière-plan !','var(--green)','🔔');
 }
 
 async function testMic(){
@@ -2105,8 +2269,7 @@ async function testCam(){
   if(!wrap||!vid) return;
   try {
     const stream = await navigator.mediaDevices.getUserMedia({video:true,audio:false});
-    vid.srcObject=stream;
-    wrap.style.display='block';
+    vid.srcObject=stream; wrap.style.display='block';
     showToast('Caméra OK ✓','Ta caméra fonctionne !','var(--green)','📷');
     setTimeout(()=>{ stream.getTracks().forEach(t=>t.stop()); wrap.style.display='none'; vid.srcObject=null; }, 5000);
   } catch(e){
@@ -2253,7 +2416,7 @@ function filterExplore(q){
   }).join('');
 }
 
-function changeBanner(){
+async function changeBanner(){
   const input=document.createElement('input'); input.type='file'; input.accept='image/*';
   input.onchange=e=>{
     const file=e.target.files[0]; if(!file)return;
@@ -2262,21 +2425,6 @@ function changeBanner(){
       await dbUpdate('users/'+S.me,{banner:'url('+ev.target.result+')'});
       S.users[S.me].banner='url('+ev.target.result+')';
       openModal('my-profile');
-    };
-    reader.readAsDataURL(file);
-  };
-  input.click();
-}
-
-function changeAvatar(){
-  const input=document.createElement('input'); input.type='file'; input.accept='image/*';
-  input.onchange=e=>{
-    const file=e.target.files[0]; if(!file)return;
-    const reader=new FileReader();
-    reader.onload=async ev=>{
-      await dbUpdate('users/'+S.me,{avatarImg:ev.target.result});
-      S.users[S.me].avatarImg=ev.target.result;
-      openModal('my-profile'); renderUserBar();
     };
     reader.readAsDataURL(file);
   };
@@ -2293,10 +2441,10 @@ function renderNitroView(){
     <div style="flex:1;overflow-y:auto;"><div class="nitro-page">
       <div class="nitro-hero"><h1>💎 HMD Nitro</h1><p>Toutes les fonctionnalités premium, gratuitement pour toujours.</p><span class="nitro-free-badge">✨ Déjà activé sur ton compte !</span></div>
       <div class="nitro-features">
-        <div class="nitro-feat"><span class="nf-badge">ACTIF</span><div class="nf-icon">🎨</div><div class="nf-title">Avatar & bannière</div><div class="nf-desc">Change ta photo de profil et ta bannière.</div><div class="active-indicator">✓ Disponible dans ton profil</div></div>
+        <div class="nitro-feat"><span class="nf-badge">ACTIF</span><div class="nf-icon">🖼️</div><div class="nf-title">Photo de profil</div><div class="nf-desc">Upload une vraie photo ou image en JPG/PNG.</div><div class="active-indicator">✓ Dans ton profil → 📷</div></div>
         <div class="nitro-feat"><span class="nf-badge">ACTIF</span><div class="nf-icon">🌈</div><div class="nf-title">Pseudo coloré</div><div class="nf-desc">Dégradé de couleur sur ton pseudo partout.</div><div class="active-indicator">✓ Dans les paramètres</div></div>
         <div class="nitro-feat"><span class="nf-badge">ACTIF</span><div class="nf-icon">📹</div><div class="nf-title">Appels vidéo HD</div><div class="nf-desc">Appels vidéo et vocaux WebRTC peer-to-peer.</div><div class="active-indicator">✓ Activé</div></div>
-        <div class="nitro-feat"><span class="nf-badge">ACTIF</span><div class="nf-icon">🎤</div><div class="nf-title">Audio HD</div><div class="nf-desc">Réduction de bruit et qualité maximale.</div><div class="active-indicator">✓ Activé</div></div>
+        <div class="nitro-feat"><span class="nf-badge">ACTIF</span><div class="nf-icon">🔔</div><div class="nf-title">Sonnerie & Notifs</div><div class="nf-desc">Sonnerie personnalisable + notifications arrière-plan.</div><div class="active-indicator">✓ Dans Paramètres → Notifications</div></div>
         <div class="nitro-feat"><span class="nf-badge">ACTIF</span><div class="nf-icon">🖥️</div><div class="nf-title">Partage d'écran</div><div class="nf-desc">Partage ton écran pendant un appel.</div><div class="active-indicator">✓ Disponible en appel</div></div>
         <div class="nitro-feat"><span class="nf-badge">ACTIF</span><div class="nf-icon">💬</div><div class="nf-title">Messages illimités</div><div class="nf-desc">Aucune limite de messages ou de fichiers.</div><div class="active-indicator">✓ Toujours gratuit</div></div>
       </div>
@@ -2305,12 +2453,18 @@ function renderNitroView(){
 }
 
 // ==================== TOASTS ====================
-function showToast(title,body,avatarBg,avatarText){
+function showToast(title, body, avatarBg, avatarText, avatarImg){
   const container=document.getElementById('toasts');
   const id='toast_'+uid();
   const div=document.createElement('div');
   div.className='toast'; div.id=id;
-  div.innerHTML=`<div class="toast-avatar" style="background:${avatarBg||'var(--grad)'}">${avatarText||'H'}</div>
+
+  const avHtml = avatarImg
+    ? `<img src="${avatarImg}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;" alt=""/>`
+    : `<span>${avatarText||'H'}</span>`;
+  const avBg = avatarImg ? 'transparent' : (avatarBg||'var(--grad)');
+
+  div.innerHTML=`<div class="toast-avatar" style="background:${avBg}">${avHtml}</div>
   <div class="toast-content"><div class="toast-title">${escHtml(title)}</div><div class="toast-body">${escHtml(body)}</div></div>
   <button class="toast-close" onclick="this.closest('.toast').remove()">✕</button>`;
   container.appendChild(div);
@@ -2324,6 +2478,7 @@ function toggleLeftPanel(){
 
 async function logout(){
   if(WR.localStream||WR.pc) endCall();
+  stopRingTone();
   await dbUpdate('users/'+S.me,{status:'offline'});
   saveSession(null);
   S.me=null;
@@ -2340,6 +2495,7 @@ async function logout(){
 
 // ==================== INIT ====================
 async function init(){
+  loadSettings();
   document.getElementById('loading-msg').textContent='Connexion à Firebase...';
   const session=loadSession();
   if(session){
@@ -2368,8 +2524,11 @@ Object.assign(window,{
   toggleCallMic,toggleCallCam,toggleScreenShare,toggleMic,toggleDeaf,
   toggleEmojiPicker,filterEmojis,insertEmoji,
   msgCtxMenu,chCtxMenu,userCtxMenu,showCtxMenu,closeCtxMenu,copyText,
-  doSearch,filterExplore,changeBanner,changeAvatar,logout,
+  doSearch,filterExplore,changeBanner,logout,
   renderNitroView,showToast,
+  // New functions
+  uploadMyAvatar,removeMyAvatar,
+  toggleRingtone,updateRingtoneVolume,previewRingtone,toggleBrowserNotif,
 });
 
 init();
