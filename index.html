@@ -1,4 +1,4 @@
-cat > /home/claude/hmd_talk_v2.html << 'HTMLEOF'
+cat > /home/claude/hmd_talk_fixed.html << 'HTMLEOF'
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -179,6 +179,8 @@ input,textarea{font-family:inherit;}
 .color-swatch{width:32px;height:32px;border-radius:8px;cursor:pointer;border:2px solid transparent;}
 .color-swatch:hover{transform:scale(1.1);}
 .color-swatch.selected{border-color:var(--text1);}
+
+/* ===== AVATAR UPLOAD ===== */
 .avatar-upload-zone{position:relative;width:80px;height:80px;margin-top:-40px;margin-bottom:8px;cursor:pointer;}
 .avatar-upload-zone .avatar-circle{width:80px;height:80px;border-radius:50%;border:5px solid var(--bg2);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;overflow:hidden;transition:.2s;}
 .avatar-upload-zone .avatar-circle img{width:100%;height:100%;object-fit:cover;}
@@ -192,6 +194,8 @@ input,textarea{font-family:inherit;}
 .avatar-preview-settings img{width:100%;height:100%;object-fit:cover;}
 .avatar-preview-settings .avatar-hover-overlay{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;font-size:20px;}
 .avatar-preview-settings:hover .avatar-hover-overlay{display:flex;}
+
+/* ===== CALL UI ===== */
 .call-ui{position:fixed;inset:0;background:#0a0a0f;z-index:200;display:flex;flex-direction:column;}
 .call-videos{flex:1;display:grid;place-items:center;gap:12px;padding:16px;background:#000;position:relative;}
 .call-videos.grid-1{grid-template-columns:1fr;}
@@ -305,14 +309,15 @@ input,textarea{font-family:inherit;}
 .perm-banner button{background:var(--grad);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;}
 .dm-unread{background:var(--red);color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:2px 5px;min-width:16px;text-align:center;margin-left:auto;}
 .mute-badge{position:absolute;top:8px;right:8px;background:rgba(239,68,68,.9);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;color:#fff;}
-/* ===== MSG AUTHOR GRADIENT ===== */
-/* BUG FIX: La couleur du pseudo s'affiche maintenant dans les messages aussi */
-.msg-author-colored{background-clip:text !important;-webkit-background-clip:text !important;-webkit-text-fill-color:transparent !important;color:transparent !important;}
+
+/* Ringtone volume slider */
 .volume-slider-row{display:flex;align-items:center;gap:12px;padding:8px 0;}
 .volume-slider-row input[type=range]{flex:1;-webkit-appearance:none;height:6px;border-radius:3px;background:var(--bg4);outline:none;}
 .volume-slider-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent1);cursor:pointer;}
 .volume-slider-row .vol-icon{font-size:18px;flex-shrink:0;width:24px;text-align:center;}
 .volume-slider-row .vol-val{font-size:12px;color:var(--text2);width:32px;text-align:right;flex-shrink:0;}
+
+/* Ringtone pulse animation on incoming call */
 @keyframes ringPulse{0%,100%{box-shadow:0 0 0 0 rgba(124,92,252,.6);}50%{box-shadow:0 0 0 12px rgba(124,92,252,0);}}
 .incoming-call .ring-pulse{animation:ringPulse 1s ease-in-out infinite;}
 </style>
@@ -388,6 +393,7 @@ input,textarea{font-family:inherit;}
   <div class="right-panel hidden" id="right-panel"></div>
 </div>
 
+<!-- CALL UI -->
 <div id="call-ui" class="call-ui hidden">
   <div class="call-videos grid-2" id="call-videos"></div>
   <div class="call-status-bar" id="call-status-bar">Connexion...</div>
@@ -408,6 +414,8 @@ input,textarea{font-family:inherit;}
 <div id="ctx-menu" class="ctx-menu hidden"></div>
 <div class="toast-container" id="toasts"></div>
 <div id="emoji-picker" class="emoji-picker hidden"></div>
+
+<!-- Hidden audio for ringtone -->
 <audio id="ringtone-audio" loop></audio>
 
 <script type="module">
@@ -437,7 +445,8 @@ let S = {
   inCall: false, callTimer: null, callSec: 0,
   _listeners: [], _seenMsgToast: {}, _seenFriendToast: {},
   dmUnread: {},
-  ringtoneVolume: 40,
+  // Ringtone settings
+  ringtoneVolume: 40, // 0-100
   ringtoneEnabled: true,
 };
 
@@ -455,8 +464,6 @@ let WR = {
   screenSharing: false,
   signalingUnsub: null,
   iceUnsub: null,
-  // BUG FIX 1: listener pour détecter raccroché par l'autre côté
-  hangupUnsub: null,
   iceCandidatesReceived: new Set(),
   silenceTrack: null,
   blackTrack: null,
@@ -477,6 +484,7 @@ const AVATAR_COLORS = ['linear-gradient(135deg,#7c5cfc,#a855f7)','linear-gradien
 const STATUS_LABELS = {online:'🟢 En ligne',idle:'🟡 Absent',dnd:'🔴 Ne pas déranger',offline:'⚫ Invisible'};
 
 // ==================== RINGTONE ENGINE ====================
+// Generate a pleasant ringtone using Web Audio API (no external file needed)
 let _ringtoneCtx = null;
 let _ringtoneNodes = [];
 let _ringtoneInterval = null;
@@ -492,17 +500,21 @@ function playRingTone(){
   const vol = S.ringtoneVolume / 100;
   if(vol === 0) return;
 
+  // Play a short melodic ring pattern then repeat
   function playPattern(){
     const ctx = createRingtoneContext();
     if(ctx.state === 'suspended') ctx.resume();
+
+    // Pattern: 3 notes (like a classic phone ring)
     const notes = [
       { freq: 880, start: 0,   dur: 0.12 },
       { freq: 1100, start: 0.15, dur: 0.12 },
       { freq: 880, start: 0.30, dur: 0.12 },
     ];
     const masterGain = ctx.createGain();
-    masterGain.gain.value = vol * 0.35;
+    masterGain.gain.value = vol * 0.35; // keep it soft, max 35% master
     masterGain.connect(ctx.destination);
+
     notes.forEach(n => {
       const osc = ctx.createOscillator();
       const g = ctx.createGain();
@@ -540,8 +552,11 @@ async function requestNotificationPermission(){
 function sendBrowserNotif(title, body, icon){
   if(!('Notification' in window) || Notification.permission !== 'granted') return;
   const n = new Notification(title, {
-    body, icon: icon || null, tag: 'hmd-call',
-    renotify: true, requireInteraction: true,
+    body,
+    icon: icon || null,
+    tag: 'hmd-call',
+    renotify: true,
+    requireInteraction: true, // stays until user interacts
   });
   n.onclick = () => { window.focus(); n.close(); };
   return n;
@@ -586,6 +601,7 @@ function formatMsg(txt){
 }
 function getDmKey(a,b){ return [a,b].sort().join('__'); }
 
+// Build avatar HTML (supports avatarImg)
 function avatarHtml(u, size=40, extraStyle=''){
   if(!u) return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:${size*0.35}px;font-weight:700;color:#fff;${extraStyle}">?</div>`;
   const bg = u.color||avatarColor(u.username);
@@ -754,7 +770,10 @@ function showIncomingCall(data){
   if(!fu) return;
   const typeLabel = data.type === 'video' ? 'vidéo' : 'vocal';
 
+  // Play ringtone
   playRingTone();
+
+  // Browser notification (background support)
   sendBrowserNotif(
     `📞 Appel ${typeLabel} entrant`,
     `${fu.username} t'appelle sur HMD Talk`,
@@ -840,21 +859,6 @@ async function replaceTrackInPC(newTrack, kind){
   }
 }
 
-// ==================== BUG FIX 1: SIGNAL DE RACCROCHAGE ====================
-// Écoute le signal de raccrochage de l'autre côté
-function listenHangup(callId, remoteId){
-  const path = `calls/${S.me}/hangup/${callId}`;
-  const r = dbRef(path);
-  const listener = onValue(r, snap => {
-    if(!snap.exists()) return;
-    // L'autre a raccroché
-    const fu = S.users[remoteId];
-    showToast('Appel terminé', (fu ? fu.username : 'L\'autre') + ' a raccroché.', '#ef4444', '📞');
-    endCall();
-  });
-  WR.hangupUnsub = () => { off(r, listener); };
-}
-
 // ==================== WEBRTC CORE ====================
 async function initWebRTCCall(isCaller, remoteOffer){
   const callType = WR.callType;
@@ -876,13 +880,9 @@ async function initWebRTCCall(isCaller, remoteOffer){
   if(callType === 'video') camBtn.classList.remove('hidden');
   else camBtn.classList.add('hidden');
 
-  // BUG FIX 2: Afficher le bouton partage d'écran même en appel vocal
-  // (on en a besoin pour les deux types d'appel)
-  const scrBtn = document.getElementById('call-screen-btn');
-  if(scrBtn) scrBtn.classList.remove('hidden');
-
   const micBtn = document.getElementById('call-mic-btn');
   if(micBtn){ micBtn.classList.remove('off'); micBtn.textContent='🎤'; }
+  const scrBtn = document.getElementById('call-screen-btn');
   if(scrBtn){ scrBtn.classList.remove('off'); scrBtn.textContent='🖥️'; }
 
   buildCallTiles(fu, callType);
@@ -933,19 +933,10 @@ async function initWebRTCCall(isCaller, remoteOffer){
   }
 
   WR.pc = new RTCPeerConnection(ICE_SERVERS);
-
-  // BUG FIX 2: En appel vocal, on ajoute quand même une track vidéo noire
-  // pour pouvoir envoyer l'écran partagé plus tard
-  WR.blackTrack = createBlackTrack();
-
   WR.localStream.getTracks().forEach(track => WR.pc.addTrack(track, WR.localStream));
 
-  // BUG FIX 2: Toujours ajouter une track vidéo dans la PC même en vocal
-  // pour permettre le partage d'écran ultérieur
   if(callType === 'voice'){
-    // On ajoute une track vidéo noire dès le départ pour que le sender existe
-    const blackStream = new MediaStream([WR.blackTrack]);
-    WR.pc.addTrack(WR.blackTrack, blackStream);
+    WR.blackTrack = createBlackTrack();
   }
 
   try { WR.silenceTrack = createSilenceTrack(); } catch(e){ console.warn('AudioContext non dispo:', e); }
@@ -996,9 +987,6 @@ async function initWebRTCCall(isCaller, remoteOffer){
         offer: JSON.stringify(offer)
       });
 
-      // BUG FIX 1: Écouter le signal hangup de l'autre
-      listenHangup(callId, remoteUserId);
-
       const answerRef = dbRef('calls/'+S.me+'/answer/'+callId);
       const unsubAnswer = onValue(answerRef, async snap => {
         if(!snap.exists()) return;
@@ -1032,8 +1020,6 @@ async function initWebRTCCall(isCaller, remoteOffer){
       await WR.pc.setLocalDescription(answer);
       await dbSet('calls/'+WR.remoteUserId+'/answer/'+WR.callId, { answer: JSON.stringify(answer) });
       listenIceCandidates('caller');
-      // BUG FIX 1: Écouter aussi le signal hangup côté callee
-      listenHangup(WR.callId, WR.remoteUserId);
     } catch(e){
       showToast('Erreur','Impossible de répondre à l\'appel.','#ef4444','!');
       endCall();
@@ -1093,14 +1079,6 @@ function attachRemoteStream(stream, kind){
   const rs = document.getElementById('remote-status');
   if(!rv) return;
   if(!rv.srcObject) rv.srcObject = stream;
-  else {
-    // BUG FIX 2: Ajouter la track au stream existant si nécessaire
-    stream.getTracks().forEach(t => {
-      if(!rv.srcObject.getTracks().includes(t)){
-        rv.srcObject.addTrack(t);
-      }
-    });
-  }
   if(rs) rs.remove();
   const remoteTile = document.getElementById('remote-tile');
   if(remoteTile) remoteTile.classList.add('speaking');
@@ -1152,8 +1130,6 @@ function joinVoiceChannel(chId){
   callUi.classList.remove('hidden');
   document.getElementById('call-label').textContent = `Vocal — #${ch.name}`;
   document.getElementById('call-cam-btn').classList.add('hidden');
-  // BUG FIX 2: Afficher le bouton screen share en vocal aussi
-  document.getElementById('call-screen-btn').classList.remove('hidden');
   setCallStatus('Salon vocal — En attente d\'autres membres');
 
   const micBtn = document.getElementById('call-mic-btn');
@@ -1193,17 +1169,8 @@ function joinVoiceChannel(chId){
   }, 1000);
 }
 
-// ==================== BUG FIX 1: ENVOYER SIGNAL RACCROCHÉ ====================
-async function endCall(){
+function endCall(){
   stopRingTone();
-
-  // Envoyer le signal de raccrochage à l'autre utilisateur
-  if(WR.callId && WR.remoteUserId && S.inCall){
-    try {
-      await dbSet('calls/'+WR.remoteUserId+'/hangup/'+WR.callId, { from: S.me, ts: Date.now() });
-    } catch(e){ console.warn('hangup signal error:', e); }
-  }
-
   if(WR.localStream){ WR.localStream.getTracks().forEach(t => t.stop()); WR.localStream = null; }
   if(WR.screenStream){ WR.screenStream.getTracks().forEach(t => t.stop()); WR.screenStream = null; }
   if(WR.silenceTrack){ WR.silenceTrack.stop(); WR.silenceTrack = null; }
@@ -1211,8 +1178,6 @@ async function endCall(){
   if(WR.pc){ WR.pc.close(); WR.pc = null; }
   if(WR.signalingUnsub){ WR.signalingUnsub(); WR.signalingUnsub = null; }
   if(WR.iceUnsub){ WR.iceUnsub(); WR.iceUnsub = null; }
-  // BUG FIX 1: Désabonner le listener hangup
-  if(WR.hangupUnsub){ WR.hangupUnsub(); WR.hangupUnsub = null; }
 
   if(WR.callId && WR.remoteUserId){
     const rid = WR.remoteUserId; const cid = WR.callId;
@@ -1222,8 +1187,6 @@ async function endCall(){
     dbRemove('calls/'+S.me+'/iceCandidatesFromCallee').catch(()=>{});
     dbRemove('calls/'+rid+'/iceCandidatesFromCaller').catch(()=>{});
     dbRemove('calls/'+rid+'/iceCandidatesFromCallee').catch(()=>{});
-    // Nettoyer les signaux hangup
-    dbRemove('calls/'+S.me+'/hangup/'+WR.callId).catch(()=>{});
   }
 
   WR.callId = null; WR.remoteUserId = null; WR.isCaller = false;
@@ -1271,23 +1234,17 @@ async function toggleCallMic(btn){
   }
 }
 
-// BUG FIX 3: Caméra coupée = track noire, pas juste en pause
 async function toggleCallCam(btn){
   if(!WR.localStream) return;
   WR.camOff = !WR.camOff;
 
   if(WR.camOff){
-    // Créer une nouvelle blackTrack si l'ancienne est expirée
     if(!WR.blackTrack || WR.blackTrack.readyState === 'ended') WR.blackTrack = createBlackTrack();
-    // Désactiver le track vidéo local pour que la preview s'éteigne aussi
-    WR.localStream.getVideoTracks().forEach(t => { t.enabled = false; });
-    // Remplacer dans la PeerConnection par une track noire
     await replaceTrackInPC(WR.blackTrack, 'video');
     btn.classList.add('off'); btn.textContent = '📵';
     const lv = document.getElementById('local-video');
     const la = document.getElementById('local-avatar');
-    // BUG FIX 3: Cacher la vidéo locale ET afficher l'avatar
-    if(lv){ lv.style.display = 'none'; lv.srcObject = null; }
+    if(lv) lv.style.display = 'none';
     if(la) la.style.display = 'flex';
   } else {
     let videoTrack = WR.localStream.getVideoTracks()[0];
@@ -1303,9 +1260,7 @@ async function toggleCallCam(btn){
         showToast('Caméra indisponible','Vérifie les permissions caméra.','#ef4444','📵');
         return;
       }
-    } else {
-      videoTrack.enabled = true;
-    }
+    } else { videoTrack.enabled = true; }
 
     await replaceTrackInPC(videoTrack, 'video');
     btn.classList.remove('off'); btn.textContent = '📷';
@@ -1316,30 +1271,24 @@ async function toggleCallCam(btn){
   }
 }
 
-// BUG FIX 2: Partage d'écran en appel vocal — le sender vidéo existe déjà
 async function toggleScreenShare(btn){
   if(WR.screenSharing){
     if(WR.screenStream){ WR.screenStream.getTracks().forEach(t => t.stop()); WR.screenStream = null; }
     WR.screenSharing = false;
     btn.classList.remove('off'); btn.textContent = '🖥️';
-    // Revenir à la caméra ou à la track noire selon l'état
     if(WR.callType === 'video' && !WR.camOff){
-      const videoTrack = WR.localStream ? WR.localStream.getVideoTracks().find(t => t.readyState !== 'ended') : null;
-      if(videoTrack){
-        videoTrack.enabled = true;
+      const videoTrack = WR.localStream ? WR.localStream.getVideoTracks()[0] : null;
+      if(videoTrack && videoTrack.readyState !== 'ended'){
         await replaceTrackInPC(videoTrack, 'video');
         const lv = document.getElementById('local-video');
-        if(lv){ lv.srcObject = WR.localStream; lv.style.display = 'block'; }
-        const la = document.getElementById('local-avatar');
-        if(la) la.style.display = 'none';
+        if(lv){ lv.srcObject = WR.localStream; }
       }
     } else {
-      // Revenir à la track noire
       if(!WR.blackTrack || WR.blackTrack.readyState === 'ended') WR.blackTrack = createBlackTrack();
       await replaceTrackInPC(WR.blackTrack, 'video');
       const lv = document.getElementById('local-video');
       const la = document.getElementById('local-avatar');
-      if(lv){ lv.style.display = 'none'; lv.srcObject = null; }
+      if(lv) lv.style.display = 'none';
       if(la) la.style.display = 'flex';
     }
     setCallStatus('Partage d\'écran arrêté');
@@ -1353,24 +1302,17 @@ async function toggleScreenShare(btn){
     const screenTrack = WR.screenStream.getVideoTracks()[0];
     screenTrack.onended = () => { if(WR.screenSharing) toggleScreenShare(btn); };
 
-    // BUG FIX 2: Utiliser replaceTrack si le sender existe, sinon créer l'offre
     const videoSender = WR.pc ? WR.pc.getSenders().find(s => s.track && s.track.kind === 'video') : null;
-    if(videoSender){
-      // Le sender existe (car on a ajouté blackTrack au départ) → remplacer directement
-      await videoSender.replaceTrack(screenTrack);
-    } else if(WR.pc){
-      // Fallback: ajouter la track et renégocier
+    if(videoSender){ await videoSender.replaceTrack(screenTrack); }
+    else if(WR.pc && WR.localStream){
       WR.pc.addTrack(screenTrack, WR.screenStream);
       try {
         const offer = await WR.pc.createOffer();
         await WR.pc.setLocalDescription(offer);
         await dbSet('calls/'+WR.remoteUserId+'/renegotiate', { from: S.me, offer: JSON.stringify(offer), id: uid() });
       } catch(e){ console.warn('Renegociation:', e); }
-    } else {
-      // Salon vocal local uniquement
     }
 
-    // Afficher la preview locale de l'écran partagé
     const lv = document.getElementById('local-video');
     const la = document.getElementById('local-avatar');
     if(lv){ lv.srcObject = WR.screenStream; lv.style.display = 'block'; }
@@ -1398,9 +1340,11 @@ function toggleDeaf(btn){
 // ==================== AVATAR UPLOAD ====================
 function triggerAvatarUpload(callback){
   const input = document.createElement('input');
-  input.type = 'file'; input.accept = 'image/*';
+  input.type = 'file';
+  input.accept = 'image/*';
   input.onchange = e => {
     const file = e.target.files[0]; if(!file) return;
+    // Max 2MB check
     if(file.size > 2 * 1024 * 1024){
       showToast('Image trop lourde','Max 2 Mo autorisé.','#ef4444','!');
       return;
@@ -1417,6 +1361,7 @@ async function uploadMyAvatar(){
     await dbUpdate('users/'+S.me, { avatarImg: dataUrl });
     S.users[S.me].avatarImg = dataUrl;
     renderUserBar();
+    // Refresh profile modal if open
     const modal = document.querySelector('.modal-overlay');
     if(modal) openModal('my-profile');
     showToast('Photo mise à jour','Ta photo de profil a été changée ! 🎉','var(--green)','✓');
@@ -1448,12 +1393,8 @@ function renderUserBar(){
   document.getElementById('ub-name-el').textContent=u.username;
   const st=u.status||'online';
   document.getElementById('ub-status-el').textContent=STATUS_LABELS[st]||'🟢 En ligne';
-  // BUG FIX 4: Couleur du pseudo dans la barre utilisateur
-  if(u.nameColor){
-    document.getElementById('ub-name-el').style.cssText=`background:${u.nameColor};-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;`;
-  } else {
-    document.getElementById('ub-name-el').style.cssText='';
-  }
+  if(u.nameColor) document.getElementById('ub-name-el').style.cssText=`background:${u.nameColor};-webkit-background-clip:text;-webkit-text-fill-color:transparent;`;
+  else document.getElementById('ub-name-el').style.cssText='';
 }
 
 function renderServersBar(){
@@ -1819,8 +1760,6 @@ function renderDm(userId){
   scrollToBottom('msgs-area-dm_'+userId);
 }
 
-// BUG FIX 4: Couleur du pseudo dans les messages
-// Utilise un style inline sécurisé avec des propriétés CSS explicites
 function buildMsgHtml(msgs, type, contextId){
   if(!msgs||!msgs.length) return`<div style="flex:1;display:flex;align-items:center;justify-content:center;padding:48px;text-align:center;min-height:200px;"><div><div style="font-size:48px;margin-bottom:12px;">${type==='channel'?'#':'💬'}</div><div style="font-size:18px;font-weight:700;">Aucun message pour l'instant</div><div style="color:var(--text2);margin-top:4px;">Sois le premier à écrire quelque chose !</div></div></div>`;
   let html=''; let lastAuthor=''; let lastTs=0;
@@ -1828,17 +1767,6 @@ function buildMsgHtml(msgs, type, contextId){
     const isContinue=msg.author===lastAuthor&&msg.ts-lastTs<300000;
     const u=msg.authorId?S.users[msg.authorId]:null;
     const aColor=u?u.color||avatarColor(u.username):msg.avatar||avatarColor(msg.author||'');
-
-    // BUG FIX 4: Application correcte de la couleur de pseudo dans les messages
-    // Utilise un span avec style inline pour le dégradé (background-clip ne marche pas en attribut style sur certains navigateurs sans préfixe webkit)
-    let authorStyle = '';
-    let authorClass = 'msg-author';
-    if(u && u.nameColor){
-      // On utilise la classe dédiée + style inline pour le background
-      authorStyle = `background:${u.nameColor};`;
-      authorClass = 'msg-author msg-author-colored';
-    }
-
     if(!isContinue){
       const avBg = u && u.avatarImg ? 'transparent' : aColor;
       const avContent = u && u.avatarImg
@@ -1848,7 +1776,7 @@ function buildMsgHtml(msgs, type, contextId){
         <div class="msg-avatar" style="background:${avBg}">${avContent}</div>
         <div class="msg-content">
           <div class="msg-header">
-            <span class="${authorClass}" style="${authorStyle}">${escHtml(msg.author)}</span>
+            <span class="msg-author" style="${u&&u.nameColor?`background:${u.nameColor};-webkit-background-clip:text;-webkit-text-fill-color:transparent`:''}">${escHtml(msg.author)}</span>
             ${msg.badge==='nitro'?'<span class="msg-badge nitro">NITRO</span>':msg.badge==='mod'?'<span class="msg-badge mod">MOD</span>':''}
             <span class="msg-time">${timeAgo(msg.ts)}</span>
           </div>
@@ -2091,7 +2019,7 @@ function openModal(type, data){
         </div>
         ${isMe&&u.avatarImg?`<button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;margin-bottom:8px;" onclick="removeMyAvatar()">🗑️ Supprimer la photo</button>`:''}
         <div class="profile-name-row">
-          <span class="profile-name" style="${u.nameColor?`background:${u.nameColor};-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text`:''}">${escHtml(u.username)}</span>
+          <span class="profile-name" style="${u.nameColor?`background:${u.nameColor};-webkit-background-clip:text;-webkit-text-fill-color:transparent`:''}">${escHtml(u.username)}</span>
           ${u.nitro?'<span class="nitro-badge">NITRO</span>':''}
         </div>
         <div class="profile-tag" style="color:var(--text3);font-size:13px;">#${uid2.slice(-4).toUpperCase()}</div>
@@ -2245,8 +2173,8 @@ function showSettingsSection(section,btn){
         </div>
         <div class="toggle${('Notification' in window && Notification.permission==='granted')?' on':''}" id="notif-toggle" onclick="toggleBrowserNotif(this)"></div>
       </div>
-      <div id="notif-status" style="font-size:12px;color:var(--text2);margin-top:4px;">
-        ${'Notification' in window ? (Notification.permission==='granted'?'✅ Notifications autorisées':Notification.permission==='denied'?'❌ Bloquées dans le navigateur':'⏳ Permission non encore accordée') : '❌ Non supporté par ce navigateur'}
+      <div id="notif-status" style="font-size:12px;color:var(--text2);margin-top:4px;padding-left:0;">
+        ${'Notification' in window ? (Notification.permission==='granted'?'✅ Notifications autorisées':Notification.permission==='denied'?'❌ Bloquées dans le navigateur (à débloquer dans les paramètres du site)':'⏳ Permission non encore accordée') : '❌ Non supporté par ce navigateur'}
       </div>
       <div class="toggle-row">
         <div class="toggle-info"><div class="toggle-label">Messages directs</div></div>
@@ -2287,6 +2215,7 @@ function updateRingtoneVolume(val){
   saveSettings();
   const display = document.getElementById('vol-val-display');
   if(display) display.textContent = val + '%';
+  // Update icon
   const slider = document.getElementById('ringtone-vol-slider');
   if(slider){
     const row = slider.closest('.volume-slider-row');
@@ -2308,6 +2237,7 @@ async function toggleBrowserNotif(el){
     return;
   }
   if(Notification.permission === 'granted'){
+    // can't revoke, show instructions
     showToast('Pour désactiver','Va dans les paramètres du site (🔒) et bloque les notifications.','#f97316','ℹ️');
     return;
   }
@@ -2512,10 +2442,10 @@ function renderNitroView(){
       <div class="nitro-hero"><h1>💎 HMD Nitro</h1><p>Toutes les fonctionnalités premium, gratuitement pour toujours.</p><span class="nitro-free-badge">✨ Déjà activé sur ton compte !</span></div>
       <div class="nitro-features">
         <div class="nitro-feat"><span class="nf-badge">ACTIF</span><div class="nf-icon">🖼️</div><div class="nf-title">Photo de profil</div><div class="nf-desc">Upload une vraie photo ou image en JPG/PNG.</div><div class="active-indicator">✓ Dans ton profil → 📷</div></div>
-        <div class="nitro-feat"><span class="nf-badge">ACTIF</span><div class="nf-icon">🌈</div><div class="nf-title">Pseudo coloré</div><div class="nf-desc">Dégradé de couleur sur ton pseudo partout, même dans les messages.</div><div class="active-indicator">✓ Dans les paramètres</div></div>
+        <div class="nitro-feat"><span class="nf-badge">ACTIF</span><div class="nf-icon">🌈</div><div class="nf-title">Pseudo coloré</div><div class="nf-desc">Dégradé de couleur sur ton pseudo partout.</div><div class="active-indicator">✓ Dans les paramètres</div></div>
         <div class="nitro-feat"><span class="nf-badge">ACTIF</span><div class="nf-icon">📹</div><div class="nf-title">Appels vidéo HD</div><div class="nf-desc">Appels vidéo et vocaux WebRTC peer-to-peer.</div><div class="active-indicator">✓ Activé</div></div>
         <div class="nitro-feat"><span class="nf-badge">ACTIF</span><div class="nf-icon">🔔</div><div class="nf-title">Sonnerie & Notifs</div><div class="nf-desc">Sonnerie personnalisable + notifications arrière-plan.</div><div class="active-indicator">✓ Dans Paramètres → Notifications</div></div>
-        <div class="nitro-feat"><span class="nf-badge">ACTIF</span><div class="nf-icon">🖥️</div><div class="nf-title">Partage d'écran</div><div class="nf-desc">Partage ton écran en appel vocal ET vidéo.</div><div class="active-indicator">✓ Disponible en appel</div></div>
+        <div class="nitro-feat"><span class="nf-badge">ACTIF</span><div class="nf-icon">🖥️</div><div class="nf-title">Partage d'écran</div><div class="nf-desc">Partage ton écran pendant un appel.</div><div class="active-indicator">✓ Disponible en appel</div></div>
         <div class="nitro-feat"><span class="nf-badge">ACTIF</span><div class="nf-icon">💬</div><div class="nf-title">Messages illimités</div><div class="nf-desc">Aucune limite de messages ou de fichiers.</div><div class="active-indicator">✓ Toujours gratuit</div></div>
       </div>
     </div></div>
@@ -2579,6 +2509,7 @@ async function init(){
   });
 }
 
+// Make functions global
 Object.assign(window,{
   showAuthTab,doLogin,doRegister,
   showView,showServer,showChannel,openDm,
@@ -2595,6 +2526,7 @@ Object.assign(window,{
   msgCtxMenu,chCtxMenu,userCtxMenu,showCtxMenu,closeCtxMenu,copyText,
   doSearch,filterExplore,changeBanner,logout,
   renderNitroView,showToast,
+  // New functions
   uploadMyAvatar,removeMyAvatar,
   toggleRingtone,updateRingtoneVolume,previewRingtone,toggleBrowserNotif,
 });
@@ -2604,4 +2536,4 @@ init();
 </body>
 </html>
 HTMLEOF
-echo "Done: $(wc -l < /home/claude/hmd_talk_v2.html) lines"
+echo "Done: $(wc -l < /home/claude/hmd_talk_fixed.html) lignes"
