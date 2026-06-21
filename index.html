@@ -859,7 +859,22 @@ function pickStoryMedia(type){
   const input=document.createElement('input');input.type='file';input.accept=type==='image'?'image/*':'video/*';
   input.onchange=e=>{
     const file=e.target.files[0]; if(!file) return;
-    if(file.size>5*1024*1024){showToast('Fichier trop lourd','Max 5 Mo','#ef4444','!');return;}
+    if(file.type.startsWith('video/')){
+  const url=URL.createObjectURL(file);
+  const tmpVid=document.createElement('video');
+  tmpVid.preload='metadata';
+  tmpVid.onloadedmetadata=()=>{
+    URL.revokeObjectURL(url);
+    if(tmpVid.duration>60){showToast('Vidéo trop longue','Max 1 minute','#ef4444','!');return;}
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      window._storyMediaData=ev.target.result;window._storyMediaType=type;
+      const wrap=document.getElementById('story-preview-wrap');
+      if(wrap)wrap.innerHTML=`<video src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" controls muted></video>`;
+    };reader.readAsDataURL(file);
+  };
+  tmpVid.src=url;return;
+}
     const reader=new FileReader();
     reader.onload=ev=>{
       window._storyMediaData=ev.target.result; window._storyMediaType=type;
