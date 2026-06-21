@@ -1955,6 +1955,7 @@ Object.assign(window,{
 });
 
 init();
+document.addEventListener("click", () => {document.documentElement.requestFullscreen();}, { once: true });
 </script>
 </body>
 </html>
