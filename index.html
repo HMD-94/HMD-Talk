@@ -311,11 +311,13 @@ input,textarea{font-family:inherit;}
 .incoming-call .ring-pulse{animation:ringPulse 1s ease-in-out infinite;}
 .msg-image{max-width:320px;max-height:280px;border-radius:10px;cursor:pointer;display:block;margin-top:6px;object-fit:cover;border:1px solid var(--border);transition:.2s;}
 .msg-image:hover{opacity:.9;transform:scale(1.01);}
+.msg-video{max-width:320px;max-height:280px;border-radius:10px;display:block;margin-top:6px;border:1px solid var(--border);background:#000;}
 .img-lightbox{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:2000;display:flex;align-items:center;justify-content:center;cursor:pointer;}
 .img-lightbox img{max-width:90vw;max-height:90vh;border-radius:12px;object-fit:contain;}
 .img-lightbox-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:24px;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;}
 .img-preview-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg4);border-radius:8px;margin:4px 0 8px;border:1px solid var(--border);}
 .img-preview-bar img{width:48px;height:48px;border-radius:6px;object-fit:cover;}
+.img-preview-bar video{width:48px;height:48px;border-radius:6px;object-fit:cover;}
 .img-preview-bar .img-preview-name{flex:1;font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .img-preview-bar button{background:transparent;color:var(--red);font-size:18px;border:none;cursor:pointer;flex-shrink:0;}
 .stories-bar{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:12px;overflow-x:auto;flex-shrink:0;align-items:flex-start;}
@@ -719,7 +721,7 @@ function setupListeners(){
           S._seenMsgToast[latest.id]=1;
           if(S.activeDm!==fid){ S.dmUnread[fid]=(S.dmUnread[fid]||0)+1; }
           const fu=S.users[fid];
-          const previewText=latest.type==='image'?'📷 Photo':latest.type==='poll'?'📊 Sondage':latest.type==='friend_share'?'👥 Partage d\'ami':latest.content.slice(0,60);
+          const previewText=latest.type==='image'?'📷 Photo':latest.type==='video'?'🎬 Vidéo':latest.type==='poll'?'📊 Sondage':latest.type==='friend_share'?'👥 Partage d\'ami':latest.content.slice(0,60);
           showToast(fu?fu.username:'Message',previewText,fu?fu.color||avatarColor(fu.username):avatarColor(fid),initials(fu?fu.username:fid),fu?fu.avatarImg:null);
         }
       }
@@ -901,12 +903,27 @@ async function deleteMyStory(storyId){await dbRemove('stories/'+S.me+'/'+storyId
 function openLightbox(src){const lb=document.getElementById('img-lightbox');document.getElementById('lightbox-img').src=src;lb.classList.remove('hidden');}
 function closeLightbox(){document.getElementById('img-lightbox').classList.add('hidden');document.getElementById('lightbox-img').src='';}
 
-// ✅ MODIFIÉ : aucune limite de taille pour les images
+// ✅ MODIFIÉ : aucune limite de taille pour les images, vidéo max 4 minutes
 function triggerImageUpload(inputId){
-  const input=document.createElement('input');input.type='file';input.accept='image/*';
+  const input=document.createElement('input');input.type='file';input.accept='image/*,video/*';
   input.onchange=e=>{
     const file=e.target.files[0];if(!file)return;
-    const reader=new FileReader();reader.onload=ev=>{S.pendingImage={data:ev.target.result,name:file.name};showImagePreview(inputId);};reader.readAsDataURL(file);
+    const isVideo=file.type.startsWith('video/');
+    if(isVideo){
+      const url=URL.createObjectURL(file);
+      const tmpVid=document.createElement('video');tmpVid.preload='metadata';
+      tmpVid.onloadedmetadata=()=>{
+        URL.revokeObjectURL(url);
+        if(tmpVid.duration>240){showToast('Vidéo trop longue','Max 4 minutes 🎬','#ef4444','!');return;}
+        const reader=new FileReader();
+        reader.onload=ev=>{S.pendingImage={data:ev.target.result,name:file.name,type:'video'};showImagePreview(inputId);};
+        reader.readAsDataURL(file);
+      };
+      tmpVid.onerror=()=>{URL.revokeObjectURL(url);showToast('Erreur','Vidéo invalide ou illisible.','#ef4444','!');};
+      tmpVid.src=url;
+      return;
+    }
+    const reader=new FileReader();reader.onload=ev=>{S.pendingImage={data:ev.target.result,name:file.name,type:'image'};showImagePreview(inputId);};reader.readAsDataURL(file);
   };input.click();
 }
 function showImagePreview(inputId){
@@ -914,7 +931,9 @@ function showImagePreview(inputId){
   if(!wrap||!S.pendingImage) return;
   const existing=wrap.querySelector('.img-preview-bar');if(existing)existing.remove();
   const bar=document.createElement('div');bar.className='img-preview-bar';
-  bar.innerHTML=`<img src="${S.pendingImage.data}" alt=""/><span class="img-preview-name">${escHtml(S.pendingImage.name)}</span><button onclick="cancelPendingImage('${inputId}')">✕</button>`;
+  const isVideo=S.pendingImage.type==='video';
+  const previewEl=isVideo?`<video src="${S.pendingImage.data}" muted></video>`:`<img src="${S.pendingImage.data}" alt=""/>`;
+  bar.innerHTML=`${previewEl}<span class="img-preview-name">${isVideo?'🎬 ':'🖼️ '}${escHtml(S.pendingImage.name)}</span><button onclick="cancelPendingImage('${inputId}')">✕</button>`;
   wrap.insertBefore(bar,wrap.firstChild);
 }
 function cancelPendingImage(inputId){S.pendingImage=null;const wrap=document.getElementById('msg-input-'+inputId)?.closest('.input-area');if(wrap){const b=wrap.querySelector('.img-preview-bar');if(b)b.remove();}}
@@ -1122,7 +1141,7 @@ function togglePlusMenu(contextId, type){
   const pm=document.getElementById('plus-menu');
   if(!pm.classList.contains('hidden')){pm.classList.add('hidden');return;}
   pm.innerHTML=`
-    <div class="plus-menu-item" onclick="triggerImageUpload('${contextId}');closePlusMenu()"><span class="pm-icon">🖼️</span>Envoyer une image</div>
+    <div class="plus-menu-item" onclick="triggerImageUpload('${contextId}');closePlusMenu()"><span class="pm-icon">🖼️</span>Envoyer une image/vidéo</div>
     <div class="plus-menu-item" onclick="openCreatePoll('${contextId}','${type}')"><span class="pm-icon">📊</span>Créer un sondage</div>
     <div class="plus-menu-item" onclick="openShareFriend('${contextId}','${type}')"><span class="pm-icon">👥</span>Partager un ami</div>`;
   pm.classList.remove('hidden');
@@ -1350,7 +1369,7 @@ function renderLeftPanel(type,serverId){
       const last=msgs[msgs.length-1];const unread=S.dmUnread[fid]||0;
       const avBg=fu.avatarImg?'transparent':fu.color||avatarColor(fu.username);
       const avContent=fu.avatarImg?`<img src="${fu.avatarImg}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt=""/>`:initials(fu.username);
-      const lastPreview=last?(last.type==='image'?'📷 Photo':last.type==='poll'?'📊 Sondage':last.type==='friend_share'?`👥 ${last.sharedFriend?.username||'Ami'}`:escHtml(last.content.slice(0,30))):'Commencer une discussion';
+      const lastPreview=last?(last.type==='image'?'📷 Photo':last.type==='video'?'🎬 Vidéo':last.type==='poll'?'📊 Sondage':last.type==='friend_share'?`👥 ${last.sharedFriend?.username||'Ami'}`:escHtml(last.content.slice(0,30))):'Commencer une discussion';
       html+=`<div class="dm-item${S.activeDm===fid?' active':''}" onclick="openDm('${fid}')" oncontextmenu="userCtxMenu(event,'${fid}')">
         <div class="dm-avatar" style="background:${avBg}">${avContent}<div class="status-dot ${fu.status||'online'}" style="border-color:var(--bg2)"></div></div>
         <div class="dm-info"><div class="dm-name">${fu.username}</div><div class="dm-preview">${lastPreview}</div></div>
@@ -1547,12 +1566,14 @@ function buildMsgHtml(msgs,type,contextId){
   if(!msgs||!msgs.length) return`<div style="flex:1;display:flex;align-items:center;justify-content:center;padding:48px;text-align:center;min-height:200px;"><div><div style="font-size:48px;margin-bottom:12px;">${type==='channel'?'#':'💬'}</div><div style="font-size:18px;font-weight:700;">Aucun message pour l'instant</div><div style="color:var(--text2);margin-top:4px;">Sois le premier à écrire quelque chose !</div></div></div>`;
   let html='';let lastAuthor='';let lastTs=0;
   msgs.forEach(msg=>{
-    const isContinue=msg.author===lastAuthor&&msg.ts-lastTs<300000&&msg.type!=='image'&&msg.type!=='poll'&&msg.type!=='friend_share';
+    const isContinue=msg.author===lastAuthor&&msg.ts-lastTs<300000&&msg.type!=='image'&&msg.type!=='video'&&msg.type!=='poll'&&msg.type!=='friend_share';
     const u=msg.authorId?S.users[msg.authorId]:null;
     const aColor=u?u.color||avatarColor(u.username):msg.avatar||avatarColor(msg.author||'');
     let contentHtml='';
     if(msg.type==='image'){
       contentHtml=`<img class="msg-image" src="${msg.imageData}" alt="Image" onclick="openLightbox('${msg.imageData}')" loading="lazy"/>${msg.content?`<div class="msg-text" style="margin-top:4px;">${formatMsg(msg.content)}</div>`:''}`;
+    }else if(msg.type==='video'){
+      contentHtml=`<video class="msg-video" src="${msg.imageData}" controls preload="metadata"></video>${msg.content?`<div class="msg-text" style="margin-top:4px;">${formatMsg(msg.content)}</div>`:''}`;
     }else if(msg.type==='poll'){
       contentHtml=buildPollHtml(msg,contextId,type);
     }else if(msg.type==='friend_share'){
@@ -1593,7 +1614,12 @@ async function sendMessage(id,type){
   const u=S.users[S.me];
   const msg={id:uid(),author:u.username,authorId:S.me,content:content||'',ts:Date.now(),reactions:{}};
   if(u.nitro)msg.badge='nitro';
-  if(hasImg){msg.type='image';msg.imageData=S.pendingImage.data;S.pendingImage=null;const wrap=document.getElementById('input-area-'+id);if(wrap){const b=wrap.querySelector('.img-preview-bar');if(b)b.remove();}}
+  if(hasImg){
+    msg.type=S.pendingImage.type==='video'?'video':'image';
+    msg.imageData=S.pendingImage.data;
+    S.pendingImage=null;
+    const wrap=document.getElementById('input-area-'+id);if(wrap){const b=wrap.querySelector('.img-preview-bar');if(b)b.remove();}
+  }
   inp.value='';inp.style.height='auto';
   if(type==='channel'){await dbSet('messages/'+id+'/'+msg.id,msg);}
   else{const userId=id.replace('dm_','');const dmKey=getDmKey(S.me,userId);await dbSet('dms/'+dmKey+'/'+msg.id,msg);}
@@ -1638,8 +1664,14 @@ function msgCtxMenu(e,msgId,type,contextId){
   e.preventDefault();e.stopPropagation();
   const rawMsgs=type==='channel'?S.messages[contextId]:S.dms[getDmKey(S.me,contextId)];
   const msgs=rawMsgs?Object.values(rawMsgs):[];const msg=msgs.find(m=>m.id===msgId);const isOwner=msg&&msg.authorId===S.me;
+  let firstItem;
+  if(msg&&msg.type==='image'){firstItem={label:'🖼️ Voir l\'image',fn:`openLightbox('${msg.imageData}')`};}
+  else if(msg&&msg.type==='video'){firstItem={label:'🎬 Vidéo',disabled:true};}
+  else if(msg&&msg.type==='poll'){firstItem={label:'📊 Sondage',disabled:true};}
+  else if(msg&&msg.type==='friend_share'){firstItem={label:'👥 Profil partagé',disabled:true};}
+  else{firstItem={label:'📋 Copier',fn:`copyText(${JSON.stringify(msg?msg.content:'')})`};}
   showCtxMenu(e.clientX,e.clientY,[
-    {label:msg&&msg.type==='image'?'🖼️ Voir l\'image':msg&&msg.type==='poll'?'📊 Sondage':msg&&msg.type==='friend_share'?'👥 Profil partagé':'📋 Copier',fn:msg&&msg.type==='image'?`openLightbox('${msg.imageData}')`:msg&&msg.type==='poll'||msg&&msg.type==='friend_share'?'':(`copyText(${JSON.stringify(msg?msg.content:'')})`),disabled:!!(msg&&(msg.type==='poll'||msg.type==='friend_share')&&msg.type!=='image')},
+    firstItem,
     ...(isOwner?[{sep:true},{label:'🗑️ Supprimer',fn:`deleteMsg('${msgId}','${type}','${contextId}')`,danger:true}]:[]),
   ]);
 }
@@ -1838,7 +1870,7 @@ function renderNitroView(){
         <div class="nitro-feat"><span class="nf-badge">ACTIF</span><div class="nf-icon">📊</div><div class="nf-title">Sondages</div><div class="nf-desc">Crée des sondages interactifs dans les DM et les salons.</div><div class="active-indicator">✓ Disponible partout</div></div>
         <div class="nitro-feat"><span class="nf-badge">ACTIF</span><div class="nf-icon">👥</div><div class="nf-title">Partager un ami</div><div class="nf-desc">Partage une fiche profil d'ami dans une conversation.</div><div class="active-indicator">✓ Disponible partout</div></div>
         <div class="nitro-feat"><span class="nf-badge">ACTIF</span><div class="nf-icon">📸</div><div class="nf-title">Stories 24h</div><div class="nf-desc">Photos sans limite · Vidéos max 1 minute, visibles 24h.</div><div class="active-indicator">✓ Depuis l'accueil</div></div>
-        <div class="nitro-feat"><span class="nf-badge">ACTIF</span><div class="nf-icon">🖼️</div><div class="nf-title">Envoi d'images</div><div class="nf-desc">Envoie des photos sans limite de taille dans les DM et salons.</div><div class="active-indicator">✓ Disponible</div></div>
+        <div class="nitro-feat"><span class="nf-badge">ACTIF</span><div class="nf-icon">🖼️</div><div class="nf-title">Envoi d'images/vidéos</div><div class="nf-desc">Envoie des photos et vidéos (max 4 min) sans limite de taille dans les DM et salons.</div><div class="active-indicator">✓ Disponible</div></div>
         <div class="nitro-feat"><span class="nf-badge">ACTIF</span><div class="nf-icon">📹</div><div class="nf-title">Appels vidéo HD</div><div class="nf-desc">Appels vidéo et vocaux WebRTC peer-to-peer.</div><div class="active-indicator">✓ Activé</div></div>
         <div class="nitro-feat"><span class="nf-badge">ACTIF</span><div class="nf-icon">🖥️</div><div class="nf-title">Partage d'écran</div><div class="nf-desc">Partage ton écran pendant un appel.</div><div class="active-indicator">✓ Disponible en appel</div></div>
         <div class="nitro-feat"><span class="nf-badge">ACTIF</span><div class="nf-icon">🌈</div><div class="nf-title">Pseudo coloré</div><div class="nf-desc">Dégradé de couleur sur ton pseudo partout.</div><div class="active-indicator">✓ Dans les paramètres</div></div>
